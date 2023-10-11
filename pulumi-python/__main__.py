@@ -19,15 +19,17 @@ Virtual_private_cloud = aws.ec2.Vpc(vpc_name,
 
 # Define availability zones
 azs = aws.get_availability_zones().names
+num_azs = len(azs)
 
 # Create 3 public and 3 private subnets
 public_subnets = []
 private_subnets = []
 
-for i in range(3):
+for i in range(data.get("no_of_subnets")):
+    az_index = i % num_azs
     public_subnet = aws.ec2.Subnet(f"{vpc_name}-public-subnet-{i}",
         cidr_block=data.get(f"publicSubnetCidr{i}"),
-        availability_zone=azs[i],
+        availability_zone=azs[az_index],
         vpc_id=Virtual_private_cloud.id,
         map_public_ip_on_launch=True,
         tags={
@@ -36,7 +38,7 @@ for i in range(3):
 
     private_subnet = aws.ec2.Subnet(f"{vpc_name}-private-subnet-{i}",
         cidr_block=data.get(f"privateSubnetCidr{i}"),
-        availability_zone=azs[i],
+        availability_zone=azs[az_index],
         vpc_id=Virtual_private_cloud.id,
         tags={
             "Name": f"{vpc_name}-private-subnet-{i}",

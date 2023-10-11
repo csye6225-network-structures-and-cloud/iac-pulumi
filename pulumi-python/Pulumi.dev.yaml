@@ -3,6 +3,10 @@ config:
   aws:region: us-east-1
   pulumi-python:data:
     active: true
+<<<<<<< HEAD
+    no_of_subnets: 3
+=======
+>>>>>>> cff83d733d0b81ce5ef3352f580fbce4fa66adb7
     privateSubnetCidr0: 10.0.4.0/24
     privateSubnetCidr1: 10.0.5.0/24
     privateSubnetCidr2: 10.0.6.0/24
