@@ -1,5 +1,6 @@
 import pulumi
 import pulumi_aws as aws
+import ipaddress
 
 # Fetch the configuration values
 config = pulumi.Config()
@@ -8,6 +9,14 @@ data = config.require_object("data")
 # Extract key configuration values
 vpc_name = data.get("vpcName")
 vpc_cidr = data.get("vpcCidr")
+no_of_subnets = data.get("no_of_subnets")
+
+def get_subnets(vpc_cidr, num_subnets):
+    network = ipaddress.ip_network(vpc_cidr, strict=False)
+    return [str(subnet) for subnet in network.subnets(new_prefix=24)][:num_subnets]
+
+# Get all subnets
+subnet_cidrs = get_subnets(vpc_cidr, no_of_subnets)
 
 # Create the VPC using the fetched config values
 Virtual_private_cloud = aws.ec2.Vpc(vpc_name,
@@ -21,14 +30,16 @@ Virtual_private_cloud = aws.ec2.Vpc(vpc_name,
 azs = aws.get_availability_zones().names
 num_azs = len(azs)
 
+half_subnets = no_of_subnets // 2
+
 # Create 3 public and 3 private subnets
 public_subnets = []
 private_subnets = []
 
-for i in range(data.get("no_of_subnets")):
+for i in range(half_subnets):
     az_index = i % num_azs
     public_subnet = aws.ec2.Subnet(f"{vpc_name}-public-subnet-{i}",
-        cidr_block=data.get(f"publicSubnetCidr{i}"),
+        cidr_block=subnet_cidrs[i],
         availability_zone=azs[az_index],
         vpc_id=Virtual_private_cloud.id,
         map_public_ip_on_launch=True,
@@ -37,7 +48,7 @@ for i in range(data.get("no_of_subnets")):
         })
 
     private_subnet = aws.ec2.Subnet(f"{vpc_name}-private-subnet-{i}",
-        cidr_block=data.get(f"privateSubnetCidr{i}"),
+        cidr_block=subnet_cidrs[i + half_subnets],
         availability_zone=azs[az_index],
         vpc_id=Virtual_private_cloud.id,
         tags={
