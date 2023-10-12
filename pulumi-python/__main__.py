@@ -9,14 +9,27 @@ data = config.require_object("data")
 # Extract key configuration values
 vpc_name = data.get("vpcName")
 vpc_cidr = data.get("vpcCidr")
-no_of_subnets = data.get("no_of_subnets")
+num_subnets = data.get("no_of_subnets")
+
+# Define availability zones
+azs = aws.get_availability_zones().names
+num_azs = len(azs)
+
+if num_azs >= 3:
+    num_public_subnets = 3
+    num_private_subnets = 3
+    num_subnets = num_public_subnets + num_private_subnets
+else:
+    num_public_subnets = num_azs
+    num_private_subnets = num_azs
+    num_subnets = num_public_subnets + num_private_subnets
 
 def get_subnets(vpc_cidr, num_subnets):
     network = ipaddress.ip_network(vpc_cidr, strict=False)
     return [str(subnet) for subnet in network.subnets(new_prefix=24)][:num_subnets]
 
 # Get all subnets
-subnet_cidrs = get_subnets(vpc_cidr, no_of_subnets)
+subnet_cidrs = get_subnets(vpc_cidr, num_subnets)
 
 # Create the VPC using the fetched config values
 Virtual_private_cloud = aws.ec2.Vpc(vpc_name,
@@ -26,11 +39,7 @@ Virtual_private_cloud = aws.ec2.Vpc(vpc_name,
         "Name": vpc_name,
     })
 
-# Define availability zones
-azs = aws.get_availability_zones().names
-num_azs = len(azs)
-
-half_subnets = no_of_subnets // 2
+half_subnets = num_subnets // 2
 
 # Create 3 public and 3 private subnets
 public_subnets = []
@@ -94,5 +103,5 @@ for subnet in private_subnets:
 # Create a public route in the public route table
 public_route = aws.ec2.Route(f"{vpc_name}-public-route",
     route_table_id=public_route_table.id,
-    destination_cidr_block="0.0.0.0/0",
+    destination_cidr_block=data.get("destination_cidr_block"),
     gateway_id=internet_gateway.id)
