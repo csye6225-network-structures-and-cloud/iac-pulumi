@@ -13,6 +13,7 @@ vpc_cidr = data.get("vpcCidr")
 num_subnets = data.get("no_of_subnets")
 applicationsecuritygroup = data.get("applicationsecuritygroup")
 
+
 # Define availability zones
 azs = aws.get_availability_zones().names
 num_azs = len(azs)
@@ -21,8 +22,6 @@ if num_azs >= 3:
     num_public_subnets = 3
     num_private_subnets = 3
     num_subnets = num_public_subnets + num_private_subnets
-
-    azs = random.sample(azs, 3)
 else:
     num_public_subnets = num_azs
     num_private_subnets = num_azs
