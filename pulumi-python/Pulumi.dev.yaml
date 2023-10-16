@@ -7,3 +7,10 @@ config:
     vpcCidr: 10.0.0.0/16
     vpcName: devenv
     destination_cidr_block: 0.0.0.0/0
+    volume_size: 25
+    volume_type: gp2
+    keyname: dev
+    ami_id: ami-0007c5ed3a7965cb9
+    applicationsecuritygroup: application security group
+
+
