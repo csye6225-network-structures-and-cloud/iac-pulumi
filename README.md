@@ -9,6 +9,8 @@ Here is what you need to do for networking infrastructure setup:
 - Create a public route table. Attach all public subnets created to the route table.
 - Create a private route table. Attach all private subnets created to the route table.
 - Create a public route in the public route table created above with the destination CIDR block 0.0.0.0/0 and the internet gateway created above as the target.
+- Application Security Group
+- Create an EC2 security group for your EC2 instances that will host web applications.
 
 ## Infrastructure as Code with Pulumi¶
 For this objective, you must complete the following tasks:
@@ -17,12 +19,12 @@ For this objective, you must complete the following tasks:
 - Write Pulumi code in a high level language (you cannot use YAML) all the networking resources.
 - Values should not be hard coded in your code.
 
+
 ## Useful commands 
 
-pulumi stack init demo
-pulumi config set aws:profile demo
-pulumi config set aws:region us-east-1
-pulumi config set vpcCidr "10.0.0.0/16"
-pulumi config set vpcName "demo"
-
-pulumi stack rm demo
+- pulumi stack init demo
+- pulumi config set aws:profile demo
+- pulumi config set aws:region us-east-1
+- pulumi config set vpcCidr "10.0.0.0/16"
+- pulumi config set vpcName "demo"
+- pulumi stack rm demo
