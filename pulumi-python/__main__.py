@@ -157,17 +157,18 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
 )
 
 
-ec2_instance = aws.ec2.Instance("webAppInstance",
-    instance_type="t2.micro",
+ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",
+    instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
     subnet_id=public_subnets[0].id,  # Placing in the first public subnet
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
+    disable_api_termination=False,
     root_block_device=
         aws.ec2.InstanceRootBlockDeviceArgs(
             delete_on_termination=True,
             volume_size=data.get("volume_size"),
             volume_type=data.get("volume_type")
         ),
-    tags={"Name": "webAppInstance"}
+    tags={"Name": f"{vpc_name}-webAppInstance"}
 )
