@@ -7,10 +7,11 @@ config:
     vpcCidr: 10.0.0.0/16
     vpcName: devenv
     destination_cidr_block: 0.0.0.0/0
+    instance_type: t2.micro
     volume_size: 25
     volume_type: gp2
     keyname: dev
-    ami_id: ami-0f8af0e0d7e39eec3
+    ami_id: ami-03573ed92206d1455
     applicationsecuritygroup: application security group
-
+    
 
