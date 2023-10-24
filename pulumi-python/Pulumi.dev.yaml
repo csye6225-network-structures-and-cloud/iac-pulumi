@@ -11,7 +11,24 @@ config:
     volume_size: 25
     volume_type: gp2
     keyname: dev
-    ami_id: ami-03573ed92206d1455
+    ami_id: ami-0563b3bc5af61cfd0
     applicationsecuritygroup: application security group
-    
+    databasesecuritygroup: database security group
+    postgresport: 5432
+    rds_subnetgroup: rds_subnetgroup
+    rdsresourcename: rdsparametergroup
+    rdsparametergroupname: csye6225-rdsparameter-group
+    rdsfamily: postgres15
+    rdsinstancename: rdsinstance
+    allocated_storage: 25
+    engine: "postgres"
+    engine_version: "15.3"
+    instance_class: "db.t3.micro"
+    multi_az: false
+    db_name: csye6225
+    username: csye6225
+    password: csye6225
+    publicly_accessible: false
+
+
 
