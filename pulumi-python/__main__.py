@@ -12,7 +12,10 @@ vpc_name = data.get("vpcName")
 vpc_cidr = data.get("vpcCidr")
 num_subnets = data.get("no_of_subnets")
 applicationsecuritygroup = data.get("applicationsecuritygroup")
-
+databasesecuritygroup = data.get("databasesecuritygroup")
+username = data.get("username")
+password =data.get("password")
+name = data.get("name")
 
 # Define availability zones
 azs = aws.get_availability_zones().names
@@ -157,18 +160,114 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
 )
 
 
-ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",
+# Database Security Group
+db_security_group = aws.ec2.SecurityGroup(f"{databasesecuritygroup}",
+    description="Allow inbound traffic for RDS PostgreSQL",
+    vpc_id=Virtual_private_cloud.id,
+    ingress=[
+        aws.ec2.SecurityGroupIngressArgs(
+            description="PostgreSQL",
+            from_port=data.get("postgresport"),
+            to_port=data.get("postgresport"),
+            protocol="tcp",
+            security_groups=[app_security_group.id]
+        )
+    ],
+    egress=[
+        aws.ec2.SecurityGroupEgressArgs(
+            from_port=0,
+            to_port=0,
+            protocol="-1",
+            cidr_blocks=["0.0.0.0/0"]
+        )
+    ],
+    tags={"Name": "f{databasesecuritygroup}"}
+)
+
+rds_subnetgroup = aws.rds.SubnetGroup(data.get("rds_subnetgroup"),
+    subnet_ids=[
+        private_subnets[0].id,
+        private_subnets[1].id,
+    ],
+    tags={
+        "Name": "My DB subnet group",
+    })
+
+
+rds_parameter_group = aws.rds.ParameterGroup(data.get("rdsresourcename"),
+    name=data.get("csye6225-rdsparameter-group"),  # Unique identifier for the DB parameter group
+    family=data.get("rdsfamily"), 
+    description="Custom rds parameter group for csye6225",
+    tags={"Name": data.get("rdsresourcename")}
+)
+
+
+# RDS Instance
+rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
+    allocated_storage=data.get("allocated_storage"),
+    engine=data.get("engine"),
+    engine_version=data.get("engine_version"),  
+    instance_class=data.get("instance_class"),
+    multi_az=data.get("multi_az"),
+    db_name=data.get("db_name"),
+    username=username,
+    password=password,
+    parameter_group_name=rds_parameter_group.name,
+    skip_final_snapshot=True,
+    vpc_security_group_ids=[db_security_group.id], 
+    db_subnet_group_name=rds_subnetgroup.name,
+    publicly_accessible=data.get("publicly_accessible"),
+    performance_insights_enabled=False,
+    tags={"Name": data.get("rds_instance_name")}
+)
+
+db_host_output = rds_instance.address.apply(lambda v: v)
+db_name=data.get("db_name")
+def format_user_data(db_host_value):
+    return user_data_template.format(
+        db_host=db_host_value,
+        db_name=db_name,
+        username=username,
+        password=password
+    )
+user_data = db_host_output.apply(format_user_data)
+
+
+user_data_template = """#!/bin/bash
+echo "app.environment=production" >> /home/admin/application.properties
+echo "spring.datasource.url=jdbc:postgresql:\/\/{db_host}:5432\/{db_name}" >> /home/admin/application.properties
+echo "spring.datasource.username={username}" >> /home/admin/application.properties
+echo "spring.datasource.password={password}" >> /home/admin/application.properties
+echo "spring.jpa.hibernate.ddl-auto=update" >> /home/admin/application.properties
+echo "server.servlet.session.persistent=false" >> /home/admin/application.properties
+echo "spring.mvc.throw-exception-if-no-handler-found=true" >> /home/admin/application.properties
+echo "spring.web.resources.add-mappings=false" >> /home/admin/application.properties
+echo "spring.security.authentication.disable-session-creation=true" >> /home/admin/application.properties
+echo "server.port=8080" >> /home/admin/application.properties
+echo "spring.jpa.properties.hibernate.dialect= org.hibernate.dialect.PostgreSQLDialect" >> /home/admin/application.properties
+
+chown admin:admin /home/admin/application.properties
+chmod 764 /home/admin/application.properties
+
+java -jar /home/admin/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
+"""
+
+
+
+ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
     instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
     subnet_id=public_subnets[0].id,  # Placing in the first public subnet
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
     disable_api_termination=False,
+    user_data=user_data,
     root_block_device=
         aws.ec2.InstanceRootBlockDeviceArgs(
             delete_on_termination=True,
             volume_size=data.get("volume_size"),
             volume_type=data.get("volume_type")
         ),
+    
     tags={"Name": f"{vpc_name}-webAppInstance"}
 )
