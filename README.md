@@ -28,3 +28,8 @@ For this objective, you must complete the following tasks:
 - pulumi config set vpcCidr "10.0.0.0/16"
 - pulumi config set vpcName "demo"
 - pulumi stack rm demo
+
+
+sudo apt install postgresql postgresql-contrib -y
+sudo apt-get install postgresql-client
+PGPASSWORD=csye6225 psql -h db_host -U csye6225 -d csye6225

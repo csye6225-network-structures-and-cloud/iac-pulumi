@@ -195,7 +195,7 @@ rds_subnetgroup = aws.rds.SubnetGroup(data.get("rds_subnetgroup"),
         private_subnets[1].id,
     ],
     tags={
-        "Name": "My DB subnet group",
+        "Name": data.get("rds_subnetgroup"),
     })
 
 
@@ -262,11 +262,11 @@ user_data_template = """#!/bin/bash
 sudo addgroup mygroup
 sudo adduser --system --no-create-home --ingroup mygroup myuser
 
-# Create the directory /opt/cloud if it doesn't exist, and set the right permissions
+# Create the directory /opt/cloud 
 sudo mkdir -p /opt/cloud
 sudo chown myuser:mygroup /opt/cloud
 
-# Write the application.properties file
+# Writing the application.properties file
 cat <<EOL | sudo tee /opt/cloud/application.properties
 app.environment={app_environment}
 spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
@@ -281,40 +281,22 @@ server.port={app_port}
 spring.jpa.properties.hibernate.dialect={hibernate_dialect}
 EOL
 
-# Set the right permissions for application.properties file
+# Setting permissions for application.properties file
 sudo chown myuser:mygroup /opt/cloud/application.properties
 sudo chmod 764 /opt/cloud/application.properties
 
+# moving file
 sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/cloud/
 
-# Set the right permissions for the JAR file
+# Set permissions for the JAR file
 sudo chown myuser:mygroup /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
 sudo chmod 754 /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
 
-# Run the JAR file with the newly created user
+# Running JAR file with the newly created user
 sudo -u myuser java -jar /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///opt/cloud/application.properties
 
 """
 
-
-# user_data_template = """#!/bin/bash
-# echo "app.environment={app_environment}" >> /home/admin/application.properties
-# echo "spring.datasource.url=jdbc:postgresql:\/\/{db_host}:5432\/{db_name}" >> /home/admin/application.properties
-# echo "spring.datasource.username={username}" >> /home/admin/application.properties
-# echo "spring.datasource.password={password}" >> /home/admin/application.properties
-# echo "spring.jpa.hibernate.ddl-auto={hibernate_update}" >> /home/admin/application.properties
-# echo "server.servlet.session.persistent={servlet_session_persistent}" >> /home/admin/application.properties
-# echo "spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}" >> /home/admin/application.properties
-# echo "spring.web.resources.add-mappings={resources_mappings}" >> /home/admin/application.properties
-# echo "spring.security.authentication.disable-session-creation={security_authentication_disable}" >> /home/admin/application.properties
-# echo "server.port={app_port}" >> /home/admin/application.properties
-# echo "spring.jpa.properties.hibernate.dialect= {hibernate_dialect}" >> /home/admin/application.properties
-
-# chown admin:admin /home/admin/application.properties
-# chmod 764 /home/admin/application.properties
-
-# java -jar /opt/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
-# """
 
 
 ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
