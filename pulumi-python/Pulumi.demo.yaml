@@ -1,16 +1,16 @@
 config:
-  aws:profile: dev
+  aws:profile: demo
   aws:region: us-east-1
   pulumi-python:data:
     active: true
     no_of_subnets: 6 # desired level
     vpcCidr: 10.0.0.0/16
-    vpcName: devenv
+    vpcName: demoenv
     destination_cidr_block: 0.0.0.0/0
     instance_type: t2.micro
     volume_size: 25
     volume_type: gp2
-    keyname: dev
+    keyname: demo
     ami_id: ami-0c347847189b1137c
     disable_api_termination: false
     delete_on_termination: True
@@ -45,6 +45,3 @@ config:
     http_port: 80
     https_port: 443
     protocol: tcp
-
-
-

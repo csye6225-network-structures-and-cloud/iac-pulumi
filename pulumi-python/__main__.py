@@ -16,6 +16,11 @@ databasesecuritygroup = data.get("databasesecuritygroup")
 username = data.get("username")
 password =data.get("password")
 name = data.get("name")
+app_port= data.get("app_port")
+http_port = data.get("http_port")
+https_port = data.get("https_port")
+ssh_port = data.get("ssh_port")
+protocol = data.get("protocol")
 
 # Define availability zones
 azs = aws.get_availability_zones().names
@@ -119,30 +124,30 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
     ingress=[
         aws.ec2.SecurityGroupIngressArgs(
             description="SSH",
-            from_port=22,
-            to_port=22,
-            protocol="tcp",
+            from_port=ssh_port,
+            to_port=ssh_port,
+            protocol=protocol,
             cidr_blocks=["0.0.0.0/0"]
         ),
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTP",
-            from_port=80,
-            to_port=80,
-            protocol="tcp",
+            from_port=http_port,
+            to_port=http_port,
+            protocol=protocol,
             cidr_blocks=["0.0.0.0/0"]
         ),
         aws.ec2.SecurityGroupIngressArgs(
             description="App Port 8080",
-            from_port=8080,
-            to_port=8080,
-            protocol="tcp",
+            from_port=app_port,
+            to_port=app_port,
+            protocol=protocol,
             cidr_blocks=["0.0.0.0/0"]
             ),
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTPS",
-            from_port=443,
-            to_port=443,
-            protocol="tcp",
+            from_port=https_port,
+            to_port=https_port,
+            protocol=protocol,
             cidr_blocks=["0.0.0.0/0"]
         ),
 
@@ -213,38 +218,57 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
     username=username,
     password=password,
     parameter_group_name=rds_parameter_group.name,
-    skip_final_snapshot=True,
+    skip_final_snapshot=data.get("skip_final_snapshot"),
     vpc_security_group_ids=[db_security_group.id], 
     db_subnet_group_name=rds_subnetgroup.name,
     publicly_accessible=data.get("publicly_accessible"),
-    performance_insights_enabled=False,
+    performance_insights_enabled=data.get("performance_insights_enabled"),
     tags={"Name": data.get("rds_instance_name")}
 )
 
 db_host_output = rds_instance.address.apply(lambda v: v)
 db_name=data.get("db_name")
+hibernate_update=data.get("hibernate_update")
+hibernate_dialect=data.get("hibernate_dialect")
+app_environment=data.get("app_environment")
+security_authentication_disable= data.get("security_authentication_disable")
+servlet_session_persistent = data.get("servlet_session_persistent")
+no_handler_exception = data.get("no_handler_exception")
+resources_mappings = data.get("resources_mappings")
+
+
 def format_user_data(db_host_value):
     return user_data_template.format(
         db_host=db_host_value,
         db_name=db_name,
         username=username,
-        password=password
+        password=password,
+        hibernate_update=hibernate_update,
+        hibernate_dialect=hibernate_dialect,
+        app_environment=app_environment,
+        security_authentication_disable=security_authentication_disable,
+        servlet_session_persistent=servlet_session_persistent,
+        no_handler_exception=no_handler_exception,
+        resources_mappings=resources_mappings,
+        app_port=app_port
+
+
     )
 user_data = db_host_output.apply(format_user_data)
 
 
 user_data_template = """#!/bin/bash
-echo "app.environment=production" >> /home/admin/application.properties
+echo "app.environment={app_environment}" >> /home/admin/application.properties
 echo "spring.datasource.url=jdbc:postgresql:\/\/{db_host}:5432\/{db_name}" >> /home/admin/application.properties
 echo "spring.datasource.username={username}" >> /home/admin/application.properties
 echo "spring.datasource.password={password}" >> /home/admin/application.properties
-echo "spring.jpa.hibernate.ddl-auto=update" >> /home/admin/application.properties
-echo "server.servlet.session.persistent=false" >> /home/admin/application.properties
-echo "spring.mvc.throw-exception-if-no-handler-found=true" >> /home/admin/application.properties
-echo "spring.web.resources.add-mappings=false" >> /home/admin/application.properties
-echo "spring.security.authentication.disable-session-creation=true" >> /home/admin/application.properties
-echo "server.port=8080" >> /home/admin/application.properties
-echo "spring.jpa.properties.hibernate.dialect= org.hibernate.dialect.PostgreSQLDialect" >> /home/admin/application.properties
+echo "spring.jpa.hibernate.ddl-auto={hibernate_update}" >> /home/admin/application.properties
+echo "server.servlet.session.persistent={servlet_session_persistent}" >> /home/admin/application.properties
+echo "spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}" >> /home/admin/application.properties
+echo "spring.web.resources.add-mappings={resources_mappings}" >> /home/admin/application.properties
+echo "spring.security.authentication.disable-session-creation={security_authentication_disable}" >> /home/admin/application.properties
+echo "server.port={app_port}" >> /home/admin/application.properties
+echo "spring.jpa.properties.hibernate.dialect= {hibernate_dialect}" >> /home/admin/application.properties
 
 chown admin:admin /home/admin/application.properties
 chmod 764 /home/admin/application.properties
@@ -253,18 +277,17 @@ java -jar /home/admin/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active
 """
 
 
-
 ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
     instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
     subnet_id=public_subnets[0].id,  # Placing in the first public subnet
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
-    disable_api_termination=False,
+    disable_api_termination=data.get("disable_api_termination"),
     user_data=user_data,
     root_block_device=
         aws.ec2.InstanceRootBlockDeviceArgs(
-            delete_on_termination=True,
+            delete_on_termination=data.get("delete_on_termination"),
             volume_size=data.get("volume_size"),
             volume_type=data.get("volume_type")
         ),
