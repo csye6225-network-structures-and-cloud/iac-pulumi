@@ -317,6 +317,7 @@ sudo -u myuser java -jar /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar --spring.p
 # """
 
 
+
 ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
     instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
