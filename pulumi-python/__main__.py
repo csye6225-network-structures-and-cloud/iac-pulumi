@@ -262,11 +262,13 @@ user_data_template = """#!/bin/bash
 sudo addgroup mygroup
 sudo adduser --system --no-create-home --ingroup mygroup myuser
 
+
 # Create the directory /opt/cloud 
 sudo mkdir -p /opt/cloud
 sudo chown myuser:mygroup /opt/cloud
 
 # Writing the application.properties file
+
 cat <<EOL | sudo tee /opt/cloud/application.properties
 app.environment={app_environment}
 spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
@@ -293,9 +295,11 @@ sudo chown myuser:mygroup /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
 sudo chmod 754 /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
 
 # Running JAR file with the newly created user
+
 sudo -u myuser java -jar /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///opt/cloud/application.properties
 
 """
+
 
 
 
