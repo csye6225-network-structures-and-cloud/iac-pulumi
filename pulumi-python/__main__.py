@@ -256,25 +256,65 @@ def format_user_data(db_host_value):
     )
 user_data = db_host_output.apply(format_user_data)
 
-
 user_data_template = """#!/bin/bash
-echo "app.environment={app_environment}" >> /home/admin/application.properties
-echo "spring.datasource.url=jdbc:postgresql:\/\/{db_host}:5432\/{db_name}" >> /home/admin/application.properties
-echo "spring.datasource.username={username}" >> /home/admin/application.properties
-echo "spring.datasource.password={password}" >> /home/admin/application.properties
-echo "spring.jpa.hibernate.ddl-auto={hibernate_update}" >> /home/admin/application.properties
-echo "server.servlet.session.persistent={servlet_session_persistent}" >> /home/admin/application.properties
-echo "spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}" >> /home/admin/application.properties
-echo "spring.web.resources.add-mappings={resources_mappings}" >> /home/admin/application.properties
-echo "spring.security.authentication.disable-session-creation={security_authentication_disable}" >> /home/admin/application.properties
-echo "server.port={app_port}" >> /home/admin/application.properties
-echo "spring.jpa.properties.hibernate.dialect= {hibernate_dialect}" >> /home/admin/application.properties
 
-chown admin:admin /home/admin/application.properties
-chmod 764 /home/admin/application.properties
+# Create a new group and user
+sudo addgroup mygroup
+sudo adduser --system --no-create-home --ingroup mygroup myuser
 
-java -jar /opt/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
+# Create the directory /opt/cloud if it doesn't exist, and set the right permissions
+sudo mkdir -p /opt/cloud
+sudo chown myuser:mygroup /opt/cloud
+
+# Write the application.properties file
+cat <<EOL | sudo tee /opt/cloud/application.properties
+app.environment={app_environment}
+spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
+spring.datasource.username={username}
+spring.datasource.password={password}
+spring.jpa.hibernate.ddl-auto={hibernate_update}
+server.servlet.session.persistent={servlet_session_persistent}
+spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}
+spring.web.resources.add-mappings={resources_mappings}
+spring.security.authentication.disable-session-creation={security_authentication_disable}
+server.port={app_port}
+spring.jpa.properties.hibernate.dialect={hibernate_dialect}
+EOL
+
+# Set the right permissions for application.properties file
+sudo chown myuser:mygroup /opt/cloud/application.properties
+sudo chmod 764 /opt/cloud/application.properties
+
+sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/cloud/
+
+# Set the right permissions for the JAR file
+sudo chown myuser:mygroup /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
+sudo chmod 754 /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
+
+# Run the JAR file with the newly created user
+sudo -u myuser java -jar /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///opt/cloud/application.properties
+
 """
+
+
+# user_data_template = """#!/bin/bash
+# echo "app.environment={app_environment}" >> /home/admin/application.properties
+# echo "spring.datasource.url=jdbc:postgresql:\/\/{db_host}:5432\/{db_name}" >> /home/admin/application.properties
+# echo "spring.datasource.username={username}" >> /home/admin/application.properties
+# echo "spring.datasource.password={password}" >> /home/admin/application.properties
+# echo "spring.jpa.hibernate.ddl-auto={hibernate_update}" >> /home/admin/application.properties
+# echo "server.servlet.session.persistent={servlet_session_persistent}" >> /home/admin/application.properties
+# echo "spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}" >> /home/admin/application.properties
+# echo "spring.web.resources.add-mappings={resources_mappings}" >> /home/admin/application.properties
+# echo "spring.security.authentication.disable-session-creation={security_authentication_disable}" >> /home/admin/application.properties
+# echo "server.port={app_port}" >> /home/admin/application.properties
+# echo "spring.jpa.properties.hibernate.dialect= {hibernate_dialect}" >> /home/admin/application.properties
+
+# chown admin:admin /home/admin/application.properties
+# chmod 764 /home/admin/application.properties
+
+# java -jar /opt/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
+# """
 
 
 ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
