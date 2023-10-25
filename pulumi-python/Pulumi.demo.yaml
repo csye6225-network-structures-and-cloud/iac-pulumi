@@ -11,7 +11,7 @@ config:
     volume_size: 25
     volume_type: gp2
     keyname: demo
-    ami_id: ami-0c347847189b1137c
+    ami_id: ami-0ea89bc2a95832b6d
     disable_api_termination: false
     delete_on_termination: True
     applicationsecuritygroup: application security group
