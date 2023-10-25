@@ -273,7 +273,7 @@ echo "spring.jpa.properties.hibernate.dialect= {hibernate_dialect}" >> /home/adm
 chown admin:admin /home/admin/application.properties
 chmod 764 /home/admin/application.properties
 
-java -jar /home/admin/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
+java -jar /opt/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///home/admin/application.properties
 """
 
 
