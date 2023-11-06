@@ -2,6 +2,7 @@ import pulumi
 import pulumi_aws as aws
 import ipaddress
 import random
+import json
 
 # Fetch the configuration values
 config = pulumi.Config()
@@ -37,7 +38,7 @@ else:
 
 def get_subnets(vpc_cidr, num_subnets):
     network = ipaddress.ip_network(vpc_cidr, strict=False)
-    return [str(subnet) for subnet in network.subnets(new_prefix=24)][:num_subnets]
+    return [str(subnet) for subnet in network.subnets(new_prefix=data.get("subnet_mask"))][:num_subnets]
 
 # Get all subnets
 subnet_cidrs = get_subnets(vpc_cidr, num_subnets)
@@ -235,7 +236,7 @@ security_authentication_disable= data.get("security_authentication_disable")
 servlet_session_persistent = data.get("servlet_session_persistent")
 no_handler_exception = data.get("no_handler_exception")
 resources_mappings = data.get("resources_mappings")
-
+file_name=data.get("file_name")
 
 def format_user_data(db_host_value):
     return user_data_template.format(
@@ -250,24 +251,15 @@ def format_user_data(db_host_value):
         servlet_session_persistent=servlet_session_persistent,
         no_handler_exception=no_handler_exception,
         resources_mappings=resources_mappings,
-        app_port=app_port
-
-
+        app_port=app_port,
+        file_name=file_name
     )
 user_data = db_host_output.apply(format_user_data)
 
 user_data_template = """#!/bin/bash
 
-# Create a new group and user
-sudo addgroup mygroup
-sudo adduser --system --no-create-home --ingroup mygroup myuser
-
-# Create the directory /opt/cloud 
-sudo mkdir -p /opt/cloud
-sudo chown myuser:mygroup /opt/cloud
-
 # Writing the application.properties file
-cat <<EOL | sudo tee /opt/cloud/application.properties
+cat <<EOL | sudo tee /opt/csye6225/application.properties
 app.environment={app_environment}
 spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
 spring.datasource.username={username}
@@ -279,34 +271,91 @@ spring.web.resources.add-mappings={resources_mappings}
 spring.security.authentication.disable-session-creation={security_authentication_disable}
 server.port={app_port}
 spring.jpa.properties.hibernate.dialect={hibernate_dialect}
+logging.file.path=/opt/csye6225
+logging.level.root=INFO
+logging.level.com.example.webapplication.*=INFO
+publish.metrics=true
+metrics.server.hostname=localhost
+metrics.server.port=8125 
+
 EOL
 
-# Setting permissions for application.properties file
-sudo chown myuser:mygroup /opt/cloud/application.properties
-sudo chmod 764 /opt/cloud/application.properties
-
 # moving file
-sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/cloud/
+sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/csye6225/
+sudo mv /home/admin/cloudwatch-config.json /opt/csye6225/
 
-# Set permissions for the JAR file
-sudo chown myuser:mygroup /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
-sudo chmod 754 /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar
-
-# Running JAR file with the newly created user
-sudo -u myuser java -jar /opt/cloud/webapplication-0.0.1-SNAPSHOT.jar --spring.profiles.active=production --spring.config.location=file:///opt/cloud/application.properties
+# Start CloudWatch agent
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -c file:/opt/csye6225/cloudwatch-config.json \
+    -s
 
 """
 
+EC2_CloudWatchRole = aws.iam.Role("EC2_CloudWatchRole",
+    assume_role_policy=json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": "sts:AssumeRole",
+            "Effect": "Allow",
+            "Sid": "",
+            "Principal": {
+                "Service": "ec2.amazonaws.com",
+            },
+        }],
+    }),
+    tags={
+        "Name": "EC2_CloudWatchRole",
+    })
 
 
-ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",                                
+cloudwatch_policy = aws.iam.RolePolicy(f"Webapp-cloudwatch-policy",
+    role=EC2_CloudWatchRole.name,
+    policy=json.dumps({
+
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricData",
+                "ec2:DescribeTags",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+                "logs:DescribeLogGroups",
+                "logs:CreateLogStream",
+                "logs:CreateLogGroup"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:PutParameter"
+            ],
+            "Resource": "arn:aws:ssm:*:*:parameter/AmazonCloudWatch-*"
+        }
+    ]
+    })
+)
+
+
+ec2_instance_profile = aws.iam.InstanceProfile("webapp-ec2-instance-profile",
+    role=EC2_CloudWatchRole.name
+)
+
+
+ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
     instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
-    subnet_id=public_subnets[0].id,  # Placing in the first public subnet
+    subnet_id=public_subnets[0].id,  # Placing in the first public subnet                          
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
-    disable_api_termination=data.get("disable_api_termination"),
+    disable_api_termination=data.get("disable_api_termination"),  
     user_data=user_data,
+    iam_instance_profile= ec2_instance_profile.name,  
     root_block_device=
         aws.ec2.InstanceRootBlockDeviceArgs(
             delete_on_termination=data.get("delete_on_termination"),
@@ -315,4 +364,15 @@ ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",
         ),
     
     tags={"Name": f"{vpc_name}-webAppInstance"}
+)
+
+
+hosted_zone_id = "Z02010442MUYL00C65BA8"
+
+a_record = aws.route53.Record(f"{vpc_name}-a-record",
+    zone_id=hosted_zone_id,
+    name="demo.supriyavallarapu.me",
+    type="A",
+    ttl=300,
+    records=[ec2_instance.public_ip],
 )
