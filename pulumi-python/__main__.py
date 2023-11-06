@@ -238,6 +238,7 @@ no_handler_exception = data.get("no_handler_exception")
 resources_mappings = data.get("resources_mappings")
 file_name=data.get("file_name")
 
+
 def format_user_data(db_host_value):
     return user_data_template.format(
         db_host=db_host_value,
@@ -253,13 +254,16 @@ def format_user_data(db_host_value):
         resources_mappings=resources_mappings,
         app_port=app_port,
         file_name=file_name
+
     )
 user_data = db_host_output.apply(format_user_data)
 
 user_data_template = """#!/bin/bash
 
+
 # Writing the application.properties file
 cat <<EOL | sudo tee /opt/csye6225/application.properties
+
 app.environment={app_environment}
 spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
 spring.datasource.username={username}
@@ -290,6 +294,7 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -m ec2 \
     -c file:/opt/csye6225/cloudwatch-config.json \
     -s
+
 
 """
 
@@ -348,12 +353,14 @@ ec2_instance_profile = aws.iam.InstanceProfile("webapp-ec2-instance-profile",
 
 
 ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
+
     instance_type=data.get("instance_type"),
     ami=data.get("ami_id"),
     subnet_id=public_subnets[0].id,  # Placing in the first public subnet                          
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
     disable_api_termination=data.get("disable_api_termination"),  
+
     user_data=user_data,
     iam_instance_profile= ec2_instance_profile.name,  
     root_block_device=
