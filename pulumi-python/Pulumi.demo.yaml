@@ -12,7 +12,7 @@ config:
     volume_size: 25
     volume_type: gp2
     keyname: demo
-    ami_id: ami-0855d1dabc44ab27e
+    ami_id: ami-057079c3f41670164
     disable_api_termination: false
     delete_on_termination: True
     applicationsecuritygroup: application security group
@@ -46,5 +46,16 @@ config:
     http_port: 80
     https_port: 443
     protocol: tcp
-    file_name: csye6225.log 
+    file_path: /opt/csye6225
+    logging_level: INFO
+    publish_metrics: true
+    metrics_server_hostname: localhost
+    metrics_server_port: 8125 
+    EC2_CloudWatchRole: Webapp-CloudWatchRole
+    Webapp-cloudwatch-policy: Webapp-cloudwatch-policy
+    webapp-ec2-instance-profile: webapp-ec2-instance-profile
+    hosted_zone_id: Z02010442MUYL00C65BA8
+    hosted_zone_name: demo.supriyavallarapu.me
+    type: A
+    ttl: 300
 

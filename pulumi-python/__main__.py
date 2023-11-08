@@ -236,8 +236,11 @@ security_authentication_disable= data.get("security_authentication_disable")
 servlet_session_persistent = data.get("servlet_session_persistent")
 no_handler_exception = data.get("no_handler_exception")
 resources_mappings = data.get("resources_mappings")
-file_name=data.get("file_name")
-
+file_path=data.get("file_path")
+logging_level=data.get("logging_level")
+publish_metrics=data.get("publish_metrics")
+metrics_server_hostname=data.get("metrics_server_hostname")
+metrics_server_port=data.get("metrics_server_port")
 
 def format_user_data(db_host_value):
     return user_data_template.format(
@@ -253,7 +256,11 @@ def format_user_data(db_host_value):
         no_handler_exception=no_handler_exception,
         resources_mappings=resources_mappings,
         app_port=app_port,
-        file_name=file_name
+        file_path=file_path,
+        logging_level=logging_level,
+        publish_metrics=publish_metrics,
+        metrics_server_hostname=metrics_server_hostname,
+        metrics_server_port=metrics_server_port
 
     )
 user_data = db_host_output.apply(format_user_data)
@@ -275,12 +282,12 @@ spring.web.resources.add-mappings={resources_mappings}
 spring.security.authentication.disable-session-creation={security_authentication_disable}
 server.port={app_port}
 spring.jpa.properties.hibernate.dialect={hibernate_dialect}
-logging.file.path=/opt/csye6225
-logging.level.root=INFO
-logging.level.com.example.webapplication.*=INFO
-publish.metrics=true
-metrics.server.hostname=localhost
-metrics.server.port=8125 
+logging.file.path={file_path}
+logging.level.root={logging_level}
+logging.level.com.example.webapplication.*={logging_level}
+publish.metrics={publish_metrics}
+metrics.server.hostname={metrics_server_hostname}
+metrics.server.port={metrics_server_port} 
 
 EOL
 
@@ -298,7 +305,7 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
 
 """
 
-EC2_CloudWatchRole = aws.iam.Role("EC2_CloudWatchRole",
+EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     assume_role_policy=json.dumps({
         "Version": "2012-10-17",
         "Statement": [{
@@ -311,11 +318,11 @@ EC2_CloudWatchRole = aws.iam.Role("EC2_CloudWatchRole",
         }],
     }),
     tags={
-        "Name": "EC2_CloudWatchRole",
+        "Name": data.get("EC2_CloudWatchRole"),
     })
 
 
-cloudwatch_policy = aws.iam.RolePolicy(f"Webapp-cloudwatch-policy",
+cloudwatch_policy = aws.iam.RolePolicy(data.get("Webapp-cloudwatch-policy"),
     role=EC2_CloudWatchRole.name,
     policy=json.dumps({
 
@@ -347,7 +354,7 @@ cloudwatch_policy = aws.iam.RolePolicy(f"Webapp-cloudwatch-policy",
 )
 
 
-ec2_instance_profile = aws.iam.InstanceProfile("webapp-ec2-instance-profile",
+ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-profile"),
     role=EC2_CloudWatchRole.name
 )
 
@@ -360,7 +367,6 @@ ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",
     vpc_security_group_ids=[app_security_group.id],
     key_name = data.get("keyname"),  # Using security group name
     disable_api_termination=data.get("disable_api_termination"),  
-
     user_data=user_data,
     iam_instance_profile= ec2_instance_profile.name,  
     root_block_device=
@@ -374,12 +380,12 @@ ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",
 )
 
 
-hosted_zone_id = "Z02010442MUYL00C65BA8"
+hosted_zone_id = data.get("hosted_zone_id")
 
 a_record = aws.route53.Record(f"{vpc_name}-a-record",
     zone_id=hosted_zone_id,
-    name="demo.supriyavallarapu.me",
-    type="A",
-    ttl=300,
+    name=data.get("hosted_zone_name"),
+    type=data.get("type"),
+    ttl=data.get("ttl"),
     records=[ec2_instance.public_ip],
 )
