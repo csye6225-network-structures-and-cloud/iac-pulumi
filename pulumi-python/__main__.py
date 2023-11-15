@@ -273,7 +273,6 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
     tags={"Name": data.get("rds_instance_name")}
 )
 
-
 #USER DATA
 
 # db_host_output = rds_instance.address.apply(lambda v: v)
@@ -340,6 +339,7 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
 
 # """
 
+
 EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     assume_role_policy=json.dumps({
         "Version": "2012-10-17",
@@ -394,6 +394,7 @@ ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-pro
 )
 
 
+
 # ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
 
 #     instance_type=data.get("instance_type"),
@@ -410,6 +411,7 @@ ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-pro
 #             volume_size=data.get("volume_size"),
 #             volume_type=data.get("volume_type")
 #         ),
+
     
 #     tags={"Name": f"{vpc_name}-webAppInstance"}
 # )
