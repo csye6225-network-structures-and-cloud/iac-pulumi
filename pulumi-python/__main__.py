@@ -138,14 +138,14 @@ lb_security_group = aws.ec2.SecurityGroup("loadBalancerSecurityGroup",
     ingress=[
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTP",
-            from_port=http_port,
+            from_port=http_port,  # 80
             to_port=http_port,
             protocol=protocol,
             cidr_blocks=[data.get("cidr_blocks")]
         ),
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTPS",
-            from_port=https_port,
+            from_port=https_port, # 443
             to_port=https_port,
             protocol=protocol,
             cidr_blocks=[data.get("cidr_blocks")]
@@ -339,7 +339,6 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
 
 # """
 
-
 EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     assume_role_policy=json.dumps({
         "Version": "2012-10-17",
@@ -394,7 +393,6 @@ ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-pro
 )
 
 
-
 # ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
 
 #     instance_type=data.get("instance_type"),
@@ -411,7 +409,6 @@ ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-pro
 #             volume_size=data.get("volume_size"),
 #             volume_type=data.get("volume_type")
 #         ),
-
     
 #     tags={"Name": f"{vpc_name}-webAppInstance"}
 # )

@@ -170,7 +170,7 @@ autoscaling_group = aws.autoscaling.Group(data.get("asg_name"),
     vpc_zone_identifiers=public_subnet_ids,
     launch_template={
         "id": LaunchTemplate.id,  # Reference to the ID of the launch template
-        "version": "$Latest",  # Use the latest version of the launch template
+        "version": "$Latest",  
     },
     tags=[{
         "key": data.get("asg_tags_key"),
