@@ -273,7 +273,6 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
     tags={"Name": data.get("rds_instance_name")}
 )
 
-
 #USER DATA
 
 # db_host_output = rds_instance.address.apply(lambda v: v)
