@@ -1,7 +1,6 @@
 import pulumi
 import pulumi_aws as aws
 import ipaddress
-import random
 import json
 
 # Fetch the configuration values
@@ -22,14 +21,27 @@ http_port = data.get("http_port")
 https_port = data.get("https_port")
 ssh_port = data.get("ssh_port")
 protocol = data.get("protocol")
-
+db_name=data.get("db_name")
+hibernate_update=data.get("hibernate_update")
+hibernate_dialect=data.get("hibernate_dialect")
+app_environment=data.get("app_environment")
+security_authentication_disable= data.get("security_authentication_disable")
+servlet_session_persistent = data.get("servlet_session_persistent")
+no_handler_exception = data.get("no_handler_exception")
+resources_mappings = data.get("resources_mappings")
+file_path=data.get("file_path")
+logging_level=data.get("logging_level")
+publish_metrics=data.get("publish_metrics")
+metrics_server_hostname=data.get("metrics_server_hostname")
+metrics_server_port=data.get("metrics_server_port")
+azs_value = data.get("azs_value")
 # Define availability zones
 azs = aws.get_availability_zones().names
 num_azs = len(azs)
 
-if num_azs >= 3:
-    num_public_subnets = 3
-    num_private_subnets = 3
+if num_azs >= azs_value:
+    num_public_subnets = azs_value
+    num_private_subnets = azs_value
     num_subnets = num_public_subnets + num_private_subnets
 else:
     num_public_subnets = num_azs
@@ -118,6 +130,40 @@ public_route = aws.ec2.Route(f"{vpc_name}-public-route",
     destination_cidr_block=data.get("destination_cidr_block"),
     gateway_id=internet_gateway.id)
 
+
+# Load Balancer Security Group
+lb_security_group = aws.ec2.SecurityGroup("loadBalancerSecurityGroup",
+    vpc_id=Virtual_private_cloud.id,
+    description="Security group for Load Balancer",
+    ingress=[
+        aws.ec2.SecurityGroupIngressArgs(
+            description="HTTP",
+            from_port=http_port,
+            to_port=http_port,
+            protocol=protocol,
+            cidr_blocks=[data.get("cidr_blocks")]
+        ),
+        aws.ec2.SecurityGroupIngressArgs(
+            description="HTTPS",
+            from_port=https_port,
+            to_port=https_port,
+            protocol=protocol,
+            cidr_blocks=[data.get("cidr_blocks")]
+        ),
+    ],
+
+    egress=[
+        aws.ec2.SecurityGroupEgressArgs(
+            from_port=data.get("egressport"),
+            to_port=data.get("egressport"),
+            protocol=data.get("egress_protocol"),
+            cidr_blocks=[data.get("cidr_blocks")]
+        )
+    ],
+    tags={"Name": "loadBalancerSecurityGroup"}
+)
+
+
 # Application Security Group
 app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
     description="Allow inbound traffic for application",
@@ -125,41 +171,39 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
     ingress=[
         aws.ec2.SecurityGroupIngressArgs(
             description="SSH",
-            from_port=ssh_port,
+            from_port=ssh_port, #22
             to_port=ssh_port,
             protocol=protocol,
-            cidr_blocks=["0.0.0.0/0"]
+            security_groups=[lb_security_group.id]
         ),
-        aws.ec2.SecurityGroupIngressArgs(
-            description="HTTP",
-            from_port=http_port,
-            to_port=http_port,
-            protocol=protocol,
-            cidr_blocks=["0.0.0.0/0"]
-        ),
+        # aws.ec2.SecurityGroupIngressArgs(
+        #     description="HTTP",
+        #     from_port=http_port,
+        #     to_port=http_port,
+        #     protocol=protocol,
+        #     cidr_blocks=["0.0.0.0/0"]
+        # ),
         aws.ec2.SecurityGroupIngressArgs(
             description="App Port 8080",
             from_port=app_port,
             to_port=app_port,
             protocol=protocol,
-            cidr_blocks=["0.0.0.0/0"]
+            security_groups=[lb_security_group.id]
             ),
-        aws.ec2.SecurityGroupIngressArgs(
-            description="HTTPS",
-            from_port=https_port,
-            to_port=https_port,
-            protocol=protocol,
-            cidr_blocks=["0.0.0.0/0"]
-        ),
-
-     
+        # aws.ec2.SecurityGroupIngressArgs(
+        #     description="HTTPS",
+        #     from_port=https_port,
+        #     to_port=https_port,
+        #     protocol=protocol,
+        #     cidr_blocks=["0.0.0.0/0"]
+        # ),  
     ],
     egress=[
         aws.ec2.SecurityGroupEgressArgs(
-            from_port=0,
-            to_port=0,
-            protocol="-1",
-            cidr_blocks=["0.0.0.0/0"]
+            from_port=data.get("egressport"),
+            to_port=data.get("egressport"),
+            protocol=data.get("egress_protocol"),
+            cidr_blocks=[data.get("cidr_blocks")]
         )
     ],
     tags={"Name": f"{applicationsecuritygroup}"}
@@ -167,7 +211,7 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
 
 
 # Database Security Group
-db_security_group = aws.ec2.SecurityGroup(f"{databasesecuritygroup}",
+db_security_group = aws.ec2.SecurityGroup(databasesecuritygroup,
     description="Allow inbound traffic for RDS PostgreSQL",
     vpc_id=Virtual_private_cloud.id,
     ingress=[
@@ -175,21 +219,23 @@ db_security_group = aws.ec2.SecurityGroup(f"{databasesecuritygroup}",
             description="PostgreSQL",
             from_port=data.get("postgresport"),
             to_port=data.get("postgresport"),
-            protocol="tcp",
+            protocol=protocol,
             security_groups=[app_security_group.id]
         )
     ],
     egress=[
         aws.ec2.SecurityGroupEgressArgs(
-            from_port=0,
-            to_port=0,
-            protocol="-1",
-            cidr_blocks=["0.0.0.0/0"]
+            from_port=data.get("egressport"),
+            to_port=data.get("egressport"),
+            protocol=data.get("egress_protocol"),
+            cidr_blocks=[data.get("cidr_blocks")]
         )
     ],
-    tags={"Name": "f{databasesecuritygroup}"}
+    tags={"Name": databasesecuritygroup}
 )
 
+
+#RDS SUBNET GROUP
 rds_subnetgroup = aws.rds.SubnetGroup(data.get("rds_subnetgroup"),
     subnet_ids=[
         private_subnets[0].id,
@@ -199,7 +245,7 @@ rds_subnetgroup = aws.rds.SubnetGroup(data.get("rds_subnetgroup"),
         "Name": data.get("rds_subnetgroup"),
     })
 
-
+#RDS PARAMETER GROUP
 rds_parameter_group = aws.rds.ParameterGroup(data.get("rdsresourcename"),
     name=data.get("csye6225-rdsparameter-group"),  # Unique identifier for the DB parameter group
     family=data.get("rdsfamily"), 
@@ -227,83 +273,72 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
     tags={"Name": data.get("rds_instance_name")}
 )
 
-db_host_output = rds_instance.address.apply(lambda v: v)
-db_name=data.get("db_name")
-hibernate_update=data.get("hibernate_update")
-hibernate_dialect=data.get("hibernate_dialect")
-app_environment=data.get("app_environment")
-security_authentication_disable= data.get("security_authentication_disable")
-servlet_session_persistent = data.get("servlet_session_persistent")
-no_handler_exception = data.get("no_handler_exception")
-resources_mappings = data.get("resources_mappings")
-file_path=data.get("file_path")
-logging_level=data.get("logging_level")
-publish_metrics=data.get("publish_metrics")
-metrics_server_hostname=data.get("metrics_server_hostname")
-metrics_server_port=data.get("metrics_server_port")
 
-def format_user_data(db_host_value):
-    return user_data_template.format(
-        db_host=db_host_value,
-        db_name=db_name,
-        username=username,
-        password=password,
-        hibernate_update=hibernate_update,
-        hibernate_dialect=hibernate_dialect,
-        app_environment=app_environment,
-        security_authentication_disable=security_authentication_disable,
-        servlet_session_persistent=servlet_session_persistent,
-        no_handler_exception=no_handler_exception,
-        resources_mappings=resources_mappings,
-        app_port=app_port,
-        file_path=file_path,
-        logging_level=logging_level,
-        publish_metrics=publish_metrics,
-        metrics_server_hostname=metrics_server_hostname,
-        metrics_server_port=metrics_server_port
+#USER DATA
 
-    )
-user_data = db_host_output.apply(format_user_data)
+# db_host_output = rds_instance.address.apply(lambda v: v)
+# def format_user_data(db_host_value):
+#     user_data_decoded = user_data_template.format(
+#         db_host=db_host_value,
+#         db_name=db_name,
+#         username=username,
+#         password=password,
+#         hibernate_update=hibernate_update,
+#         hibernate_dialect=hibernate_dialect,
+#         app_environment=app_environment,
+#         security_authentication_disable=security_authentication_disable,
+#         servlet_session_persistent=servlet_session_persistent,
+#         no_handler_exception=no_handler_exception,
+#         resources_mappings=resources_mappings,
+#         app_port=app_port,
+#         file_path=file_path,
+#         logging_level=logging_level,
+#         publish_metrics=publish_metrics,
+#         metrics_server_hostname=metrics_server_hostname,
+#         metrics_server_port=metrics_server_port
+#     )
+#     user_data_encoded = base64.b64encode(user_data_decoded.encode('utf-8')).decode('utf-8')
+#     return user_data_encoded
 
-user_data_template = """#!/bin/bash
+    
+# user_data = db_host_output.apply(format_user_data)
+# user_data_template = """#!/bin/bash
+# # Writing the application.properties file
+# cat <<EOL | sudo tee /opt/csye6225/application.properties
 
+# app.environment={app_environment}
+# spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
+# spring.datasource.username={username}
+# spring.datasource.password={password}
+# spring.jpa.hibernate.ddl-auto={hibernate_update}
+# server.servlet.session.persistent={servlet_session_persistent}
+# spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}
+# spring.web.resources.add-mappings={resources_mappings}
+# spring.security.authentication.disable-session-creation={security_authentication_disable}
+# server.port={app_port}
+# spring.jpa.properties.hibernate.dialect={hibernate_dialect}
+# logging.file.path={file_path}
+# logging.level.root={logging_level}
+# logging.level.com.example.webapplication.*={logging_level}
+# publish.metrics={publish_metrics}
+# metrics.server.hostname={metrics_server_hostname}
+# metrics.server.port={metrics_server_port} 
 
-# Writing the application.properties file
-cat <<EOL | sudo tee /opt/csye6225/application.properties
+# EOL
 
-app.environment={app_environment}
-spring.datasource.url=jdbc:postgresql://{db_host}:5432/{db_name}
-spring.datasource.username={username}
-spring.datasource.password={password}
-spring.jpa.hibernate.ddl-auto={hibernate_update}
-server.servlet.session.persistent={servlet_session_persistent}
-spring.mvc.throw-exception-if-no-handler-found={no_handler_exception}
-spring.web.resources.add-mappings={resources_mappings}
-spring.security.authentication.disable-session-creation={security_authentication_disable}
-server.port={app_port}
-spring.jpa.properties.hibernate.dialect={hibernate_dialect}
-logging.file.path={file_path}
-logging.level.root={logging_level}
-logging.level.com.example.webapplication.*={logging_level}
-publish.metrics={publish_metrics}
-metrics.server.hostname={metrics_server_hostname}
-metrics.server.port={metrics_server_port} 
+# # moving file
+# sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/csye6225/
+# sudo mv /home/admin/cloudwatch-config.json /opt/csye6225/
 
-EOL
-
-# moving file
-sudo mv /home/admin/webapplication-0.0.1-SNAPSHOT.jar /opt/csye6225/
-sudo mv /home/admin/cloudwatch-config.json /opt/csye6225/
-
-# Start CloudWatch agent
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-    -a fetch-config \
-    -m ec2 \
-    -c file:/opt/csye6225/cloudwatch-config.json \
-    -s
+# # Start CloudWatch agent
+# sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+#     -a fetch-config \
+#     -m ec2 \
+#     -c file:/opt/csye6225/cloudwatch-config.json \
+#     -s
 
 
-"""
+# """
 
 EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     assume_role_policy=json.dumps({
@@ -359,33 +394,36 @@ ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-pro
 )
 
 
-ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
+# ec2_instance = aws.ec2.Instance(f"{vpc_name}-webAppInstance",   
 
-    instance_type=data.get("instance_type"),
-    ami=data.get("ami_id"),
-    subnet_id=public_subnets[0].id,  # Placing in the first public subnet                          
-    vpc_security_group_ids=[app_security_group.id],
-    key_name = data.get("keyname"),  # Using security group name
-    disable_api_termination=data.get("disable_api_termination"),  
-    user_data=user_data,
-    iam_instance_profile= ec2_instance_profile.name,  
-    root_block_device=
-        aws.ec2.InstanceRootBlockDeviceArgs(
-            delete_on_termination=data.get("delete_on_termination"),
-            volume_size=data.get("volume_size"),
-            volume_type=data.get("volume_type")
-        ),
+#     instance_type=data.get("instance_type"),
+#     ami=data.get("ami_id"),
+#     subnet_id=public_subnets[0].id,  # Placing in the first public subnet                          
+#     vpc_security_group_ids=[app_security_group.id],
+#     key_name = data.get("keyname"),  # Using security group name
+#     disable_api_termination=data.get("disable_api_termination"),  
+#     user_data=user_data,
+#     iam_instance_profile= ec2_instance_profile.name,  
+#     root_block_device=
+#         aws.ec2.InstanceRootBlockDeviceArgs(
+#             delete_on_termination=data.get("delete_on_termination"),
+#             volume_size=data.get("volume_size"),
+#             volume_type=data.get("volume_type")
+#         ),
     
-    tags={"Name": f"{vpc_name}-webAppInstance"}
-)
+#     tags={"Name": f"{vpc_name}-webAppInstance"}
+# )
 
 
-hosted_zone_id = data.get("hosted_zone_id")
+pulumi.export('vpc_id', Virtual_private_cloud.id)
+pulumi.export('app_security_group_id', app_security_group.id)
+pulumi.export('db_security_group_id', db_security_group.id)
+pulumi.export('lb_security_group_id',lb_security_group.id)
+pulumi.export('rds_instance_id',rds_instance)
+pulumi.export('ec2_instance_profile',ec2_instance_profile.name)
+public_subnet_ids = [subnet.id for subnet in public_subnets]
+pulumi.export('public_subnet_ids', public_subnet_ids)
+pulumi.export('public_subnets', public_subnets)
+pulumi.export('azs',azs)
 
-a_record = aws.route53.Record(f"{vpc_name}-a-record",
-    zone_id=hosted_zone_id,
-    name=data.get("hosted_zone_name"),
-    type=data.get("type"),
-    ttl=data.get("ttl"),
-    records=[ec2_instance.public_ip],
-)
+

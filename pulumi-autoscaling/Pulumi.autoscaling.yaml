@@ -1,18 +1,18 @@
 config:
-  aws:profile: dev
+  aws:profile: demo
   aws:region: us-east-1
-  pulumi-python:data:
+  pulumi-autoscaling:data:
     active: true
     no_of_subnets: 6 # desired level
     vpcCidr: 10.0.0.0/16
-    vpcName: devenv
+    vpcName: demoenv
     destination_cidr_block: 0.0.0.0/0
     subnet_mask: 24
     instance_type: t2.micro
     volume_size: 25
     volume_type: gp2
-    keyname: dev
-    ami_id:  ami-0616c39ae3668f25b
+    keyname: demo
+    ami_id: ami-050fa2c01343bfcb5
     disable_api_termination: false
     delete_on_termination: True
     applicationsecuritygroup: application security group
@@ -55,7 +55,50 @@ config:
     Webapp-cloudwatch-policy: Webapp-cloudwatch-policy
     webapp-ec2-instance-profile: webapp-ec2-instance-profile
     hosted_zone_id: Z02010442MUYL00C65BA8
-    hosted_zone_name: dev.supriyavallarapu.me
+    hosted_zone_name: demo.supriyavallarapu.me
     type: A
     ttl: 300
+    device_name: /dev/xvda
+    resource_type: instance
+    launchtemplatename: asg_launch_config
+    associate_public_ip_address: True
+    http_protocol: HTTP
+    target_type: instance
+    unhealthy_healthy_threshold: 2
+    healthcheckpath: /healthz
+    healthchecktimeout: 3
+    healthcheckinterval: 30
+    asg_desired_capacity: 1
+    asg_max_size: 3
+    asg_min_size: 1
+    asg_tags_key: Name
+    asg_tags_value: autoscaling_group_instance
+    propagate_at_launch: True
+    scaling_up_adjustment: 1
+    adjustment_type: ChangeInCapacity
+    cooldown: 300
+    policy_type: SimpleScaling
+    scaling_down_adjustment: -1
+    comparison_operator_up: GreaterThanOrEqualToThreshold
+    comparison_operator_down: LessThanOrEqualToThreshold
+    evaluation_periods: 2
+    metric_name: CPUUtilization
+    namespace: AWS/EC2
+    period: 60
+    statistic: Average
+    threshold_up: 5
+    threshold_down: 3
+    internal: False
+    load_balancer_type: application
+    enable_http2: True
+    Listener_type: forward
+    evaluate_target_health: True
+    targetgroupname: webappTargetGroup
+    asg_name: webappasgGroup
+    scaleupalarm : scaleupalarm
+    scaleuppolicy: scaleuppolicy
+    scaledownpolicy: scaledownpolicy
+    scaledownalarm: scaledownalarm
+    webappAppLoadBalancer: webappAppLoadBalancer
+    listener: listener
 

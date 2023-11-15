@@ -4,6 +4,7 @@ config:
   pulumi-python:data:
     active: true
     no_of_subnets: 6 # desired level
+    azs_value: 3
     vpcCidr: 10.0.0.0/16
     vpcName: demoenv
     destination_cidr_block: 0.0.0.0/0
@@ -12,7 +13,7 @@ config:
     volume_size: 25
     volume_type: gp2
     keyname: demo
-    ami_id: ami-057079c3f41670164
+    ami_id: ami-02d641bf3d40f7cd0
     disable_api_termination: false
     delete_on_termination: True
     applicationsecuritygroup: application security group
@@ -55,7 +56,9 @@ config:
     Webapp-cloudwatch-policy: Webapp-cloudwatch-policy
     webapp-ec2-instance-profile: webapp-ec2-instance-profile
     hosted_zone_id: Z02010442MUYL00C65BA8
-    hosted_zone_name: demo.supriyavallarapu.me
-    type: A
-    ttl: 300
+    egressport: 0
+    cidr_blocks: "0.0.0.0/0"
+    egress_protocol: "-1"
+    
+    
 
