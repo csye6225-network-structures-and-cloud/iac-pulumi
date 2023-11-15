@@ -33,3 +33,42 @@ For this objective, you must complete the following tasks:
 sudo apt install postgresql postgresql-contrib -y
 sudo apt-get install postgresql-client
 PGPASSWORD=csye6225 psql -h db_host -U csye6225 -d csye6225
+
+
+
+*** GET Healthz
+
+seq 1 500 | xargs -n1 -P20  curl "http://demo.supriyavallarapu.me/healthz"
+
+*** POST request
+
+seq 1 500 | xargs -n1 -P20 -I{} curl -X POST -H "Content-Type: application/json" -u "john.doe@example.com:abc123" -d '{
+    "name": "Assignment 08",
+    "points": 9,
+    "num_of_attempts": 2,
+    "deadline": "2016-08-29T09:12:33.001Z"
+}' "http://demo.supriyavallarapu.me/v1/assignments"
+
+
+*** PUT request
+
+seq 1 500 | xargs -n1 -P20 -I{} curl -X PUT -H "Content-Type: application/json" -u "john.doe@example.com:abc123" -d '{
+    "name": "Assignment 08 updated",
+    "points": 9,
+    "num_of_attempts": 2,
+    "deadline": "2016-08-29T09:12:33.001Z"
+}' "http://demo.supriyavallarapu.me/v1/assignments/ffe99570-2052-4ebb-bb81-51dfda279ac4"
+
+
+*** GET by ID
+
+seq 1 500 | xargs -n1 -P20 -I{} curl -X GET -H "Content-Type: application/json" -u "john.doe@example.com:abc123" "http://demo.supriyavallarapu.me/v1/assignments/ffe99570-2052-4ebb-bb81-51dfda279ac4"
+
+
+*** GET ALL
+
+seq 1 500 | xargs -n1 -P20 -I{} curl -X GET -H "Content-Type: application/json" -u "john.doe@example.com:abc123" "http://demo.supriyavallarapu.me/v1/assignments"
+
+*** DELETE by ID
+
+seq 1 500 | xargs -n1 -P20 -I{} curl -X DELETE -H "Content-Type: application/json" -u "john.doe@example.com:abc123" "http://demo.supriyavallarapu.me/v1/assignments/ffe99570-2052-4ebb-bb81-51dfda279ac4"

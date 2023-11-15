@@ -138,14 +138,14 @@ lb_security_group = aws.ec2.SecurityGroup("loadBalancerSecurityGroup",
     ingress=[
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTP",
-            from_port=http_port,
+            from_port=http_port,  # 80
             to_port=http_port,
             protocol=protocol,
             cidr_blocks=[data.get("cidr_blocks")]
         ),
         aws.ec2.SecurityGroupIngressArgs(
             description="HTTPS",
-            from_port=https_port,
+            from_port=https_port, # 443
             to_port=https_port,
             protocol=protocol,
             cidr_blocks=[data.get("cidr_blocks")]
