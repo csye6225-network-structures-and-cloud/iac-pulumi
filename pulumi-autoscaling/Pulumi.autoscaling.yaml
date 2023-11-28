@@ -9,7 +9,7 @@ config:
     active: true
     adjustment_type: ChangeInCapacity
     allocated_storage: 25
-    ami_id: ami-0f94acf2471423f7a
+    ami_id: ami-067a66f221cd9e043
     app_environment: production
     app_port: 8080
     applicationsecuritygroup: application security group
@@ -113,6 +113,7 @@ config:
     lambda-logs: lambda-logs
     lambda_role: lambda_role
     dynamo_table: dynamo_table
+    dynamodbPolicy: dynamodbPolicy
     dynamo_table_name: PartitionKey
     dynamo_table_type: S
     read_capacity: 1
@@ -122,7 +123,7 @@ config:
     lambda_func: lambda
     runtime: python3.11
     handler: lambda_handler.lambda_handler
-    code: lambda.zip
+    code: lambda-handler.zip
     lambda_policy_arn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
     FROM_ADDRESS: "info@demo.supriyavallarapu.me"
     DOMAIN: "demo.supriyavallarapu.me"

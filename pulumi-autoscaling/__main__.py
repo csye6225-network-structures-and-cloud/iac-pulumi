@@ -61,24 +61,7 @@ mykey= gcp_stack_ref.get_output("mykey")
 
 
 #SNS -TOPIC CREATION 
-sns_topic = aws.sns.Topic(data.get("sns_topic"), delivery_policy="""{
-  "http": {
-    "defaultHealthyRetryPolicy": {
-      "minDelayTarget": 20,
-      "maxDelayTarget": 20,
-      "numRetries": 3,
-      "numMaxDelayRetries": 0,
-      "numNoDelayRetries": 0,
-      "numMinDelayRetries": 0,
-      "backoffFunction": "linear"
-    },
-    "disableSubscriptionOverrides": false,
-    "defaultThrottlePolicy": {
-      "maxReceivesPerSecond": 1
-    }
-  }
-}
-""")
+sns_topic = aws.sns.Topic(data.get("sns_topic"))
 
 sns_topic_policy = sns_topic.arn.apply(lambda arn: aws.iam.get_policy_document_output(policy_id="__default_policy_ID",
     statements=[aws.iam.GetPolicyDocumentStatementArgs(
