@@ -135,3 +135,4 @@ config:
     dynamodb_policy: dynamodbPolicy
     dynamodb_policy_attachment: dynamodb_policy_attachment
 
+

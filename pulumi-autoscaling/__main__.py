@@ -5,6 +5,7 @@ import base64
 import json
 
 
+
 # Taking reference from another stack
 
 stack_ref = pulumi.StackReference("vallaras23/pulumi-python/demo")
@@ -16,6 +17,7 @@ rds_instance = stack_ref.get_output('rds_instance_id')
 ec2_instance_profile=stack_ref.get_output('ec2_instance_profile')
 public_subnet_ids = stack_ref.get_output('public_subnet_ids')
 EC2_CloudWatchRole=stack_ref.get_output('EC2_CloudWatchRole')
+
 
 azs=stack_ref.get_output('azs')
 
@@ -118,6 +120,7 @@ resolved_sns_topic_arn = sns_topic.arn.apply(lambda arn: arn)
 
 
 def format_user_data(db_host_value,sns_topic_arn_value):
+
     user_data_decoded =  user_data_template.format(
         db_host=db_host_value,
         db_name=db_name,
@@ -138,6 +141,7 @@ def format_user_data(db_host_value,sns_topic_arn_value):
         metrics_server_port=metrics_server_port,
         sns_topic_arn=sns_topic_arn_value,
         aws_region=aws_region
+
     )
     user_data_encoded = base64.b64encode(user_data_decoded.encode('utf-8')).decode('utf-8')
     return user_data_encoded
@@ -146,6 +150,7 @@ def format_user_data(db_host_value,sns_topic_arn_value):
 user_data = pulumi.Output.all(db_host_output, resolved_sns_topic_arn).apply(
     lambda args: format_user_data(*args)
 )
+
 
 user_data_template = """#!/bin/bash
 # Writing the application.properties file
@@ -168,8 +173,10 @@ logging.level.com.example.webapplication.*={logging_level}
 publish.metrics={publish_metrics}
 metrics.server.hostname={metrics_server_hostname}
 metrics.server.port={metrics_server_port} 
+
 sns.topicArn={sns_topic_arn}
 aws.region={aws_region}
+
 
 EOL
 
@@ -449,6 +456,7 @@ dynamodb_policy_attachment = aws.iam.RolePolicyAttachment(data.get("dynamodb_pol
 pulumi.export('topic_arn', resolved_sns_topic_arn)
 pulumi.export('lambdainvocation', lambdainvocation)
 pulumi.export('lambda_func', lambda_func)
+
 
 
 
