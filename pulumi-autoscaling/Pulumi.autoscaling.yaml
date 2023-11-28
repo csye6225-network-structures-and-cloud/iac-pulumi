@@ -1,104 +1,138 @@
 config:
   aws:profile: demo
   aws:region: us-east-1
+  gcp:project: csye6225-dev-405817
   pulumi-autoscaling:data:
-    active: true
-    no_of_subnets: 6 # desired level
-    vpcCidr: 10.0.0.0/16
-    vpcName: demoenv
-    destination_cidr_block: 0.0.0.0/0
-    subnet_mask: 24
-    instance_type: t2.micro
-    volume_size: 25
-    volume_type: gp2
-    keyname: demo
-    ami_id: ami-050fa2c01343bfcb5
-    disable_api_termination: false
-    delete_on_termination: True
-    applicationsecuritygroup: application security group
-    databasesecuritygroup: database security group
-    postgresport: 5432
-    rds_subnetgroup: rds_subnetgroup
-    rdsresourcename: rdsparametergroup
-    rdsparametergroupname: csye6225-rdsparameter-group
-    rdsfamily: postgres15
-    rdsinstancename: rdsinstance
-    allocated_storage: 25
-    engine: "postgres"
-    engine_version: "15.3"
-    instance_class: "db.t3.micro"
-    multi_az: false
-    db_name: csye6225
-    username: csye6225
-    password: csye6225
-    skip_final_snapshot: True
-    performance_insights_enabled: false
-    publicly_accessible: false
-    hibernate_dialect: org.hibernate.dialect.PostgreSQLDialect
-    hibernate_update: update
-    app_environment: production
-    security_authentication_disable: True
-    servlet_session_persistent : false
-    no_handler_exception: True
-    resources_mappings: false
-    app_port: 8080
-    ssh_port: 22
-    http_port: 80
-    https_port: 443
-    protocol: tcp
-    file_path: /opt/csye6225
-    logging_level: INFO
-    publish_metrics: true
-    metrics_server_hostname: localhost
-    metrics_server_port: 8125 
     EC2_CloudWatchRole: Webapp-CloudWatchRole
+    Listener_type: forward
     Webapp-cloudwatch-policy: Webapp-cloudwatch-policy
-    webapp-ec2-instance-profile: webapp-ec2-instance-profile
-    hosted_zone_id: Z02010442MUYL00C65BA8
-    hosted_zone_name: demo.supriyavallarapu.me
-    type: A
-    ttl: 300
-    device_name: /dev/xvda
-    resource_type: instance
-    launchtemplatename: asg_launch_config
-    associate_public_ip_address: True
-    http_protocol: HTTP
-    target_type: instance
-    unhealthy_healthy_threshold: 2
-    healthcheckpath: /healthz
-    healthchecktimeout: 3
-    healthcheckinterval: 30
+    active: true
+    adjustment_type: ChangeInCapacity
+    allocated_storage: 25
+    ami_id: ami-067a66f221cd9e043
+    app_environment: production
+    app_port: 8080
+    applicationsecuritygroup: application security group
     asg_desired_capacity: 1
     asg_max_size: 3
     asg_min_size: 1
+    asg_name: webappasgGroup
     asg_tags_key: Name
     asg_tags_value: autoscaling_group_instance
-    propagate_at_launch: True
-    scaling_up_adjustment: 1
-    adjustment_type: ChangeInCapacity
-    cooldown: 300
-    policy_type: SimpleScaling
-    scaling_down_adjustment: -1
-    comparison_operator_up: GreaterThanOrEqualToThreshold
+    associate_public_ip_address: true
     comparison_operator_down: LessThanOrEqualToThreshold
+    comparison_operator_up: GreaterThanOrEqualToThreshold
+    cooldown: 300
+    databasesecuritygroup: database security group
+    db_name: csye6225
+    delete_on_termination: true
+    demoaccount: 494954498426
+    destination_cidr_block: 0.0.0.0/0
+    device_name: /dev/xvda
+    disable_api_termination: false
+    enable_http2: true
+    engine: "postgres"
+    engine_version: "15.3"
+    evaluate_target_health: true
     evaluation_periods: 2
-    metric_name: CPUUtilization
-    namespace: AWS/EC2
-    period: 60
-    statistic: Average
-    threshold_up: 5
-    threshold_down: 3
-    internal: False
-    load_balancer_type: application
-    enable_http2: True
-    Listener_type: forward
-    evaluate_target_health: True
-    targetgroupname: webappTargetGroup
-    asg_name: webappasgGroup
-    scaleupalarm : scaleupalarm
-    scaleuppolicy: scaleuppolicy
-    scaledownpolicy: scaledownpolicy
-    scaledownalarm: scaledownalarm
-    webappAppLoadBalancer: webappAppLoadBalancer
+    file_path: /opt/csye6225
+    healthcheckinterval: 30
+    healthcheckpath: /healthz
+    healthchecktimeout: 3
+    hibernate_dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate_update: update
+    hosted_zone_id: Z02010442MUYL00C65BA8
+    hosted_zone_name: demo.supriyavallarapu.me
+    http_port: 80
+    http_protocol: HTTP
+    https_port: 443
+    instance_class: "db.t3.micro"
+    instance_type: t2.micro
+    internal: false
+    keyname: demo
+    launchtemplatename: asg_launch_config
     listener: listener
+    load_balancer_type: application
+    logging_level: INFO
+    metric_name: CPUUtilization
+    metrics_server_hostname: localhost
+    metrics_server_port: 8125
+    multi_az: false
+    namespace: AWS/EC2
+    no_handler_exception: true
+    no_of_subnets: 6 # desired level
+    password: csye6225
+    performance_insights_enabled: false
+    period: 60
+    policy_type: SimpleScaling
+    postgresport: 5432
+    propagate_at_launch: true
+    protocol: tcp
+    publicly_accessible: false
+    publish_metrics: true
+    rds_subnetgroup: rds_subnetgroup
+    rdsfamily: postgres15
+    rdsinstancename: rdsinstance
+    rdsparametergroupname: csye6225-rdsparameter-group
+    rdsresourcename: rdsparametergroup
+    resource_type: instance
+    resources_mappings: false
+    scaledownalarm: scaledownalarm
+    scaledownpolicy: scaledownpolicy
+    scaleupalarm: scaleupalarm
+    scaleuppolicy: scaleuppolicy
+    scaling_down_adjustment: -1
+    scaling_up_adjustment: 1
+    security_authentication_disable: true
+    servlet_session_persistent: false
+    skip_final_snapshot: true
+    ssh_port: 22
+    statistic: Average
+    subnet_mask: 24
+    target_type: instance
+    targetgroupname: webappTargetGroup
+    threshold_down: 3
+    threshold_up: 5
+    ttl: 300
+    type: A
+    unhealthy_healthy_threshold: 2
+    username: csye6225
+    volume_size: 25
+    volume_type: gp2
+    vpcCidr: 10.0.0.0/16
+    vpcName: demoenv
+    webapp-ec2-instance-profile: webapp-ec2-instance-profile
+    webappAppLoadBalancer: webappAppLoadBalancer
+    aws_region: us-east-1
+    sns_topic: sns_topic
+    sesSendEmailPolicy: sesSendEmailPolicy
+    snsPublishPolicyAttachment: snsPublishPolicyAttachment
+    ses_policy_attachment: ses_policy_attachment
+    sespolicyresource: arn:aws:ses:us-east-1:494954498426:identity/demo.supriyavallarapu.me
+    TopicPolicy: TopicPolicy
+    lambda-logs: lambda-logs
+    lambda_role: lambda_role
+    dynamo_table: dynamo_table
+    dynamodbPolicy: dynamodbPolicy
+    dynamo_table_name: PartitionKey
+    dynamo_table_type: S
+    read_capacity: 1
+    write_capacity: 1
+    timestamp: timestamp
+    dynamodbenabled: True
+    lambda_func: lambda
+    runtime: python3.11
+    handler: lambda_handler.lambda_handler
+    code: lambda-handler.zip
+    lambda_policy_arn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+    FROM_ADDRESS: "info@demo.supriyavallarapu.me"
+    DOMAIN: "demo.supriyavallarapu.me"
+    lambdainvocation: lambdainvocation
+    action: "lambda:InvokeFunction"
+    lambda_protocol: lambda
+    principal: "sns.amazonaws.com"
+    lambdaSubscription: lambdaSubscription
+    dynamodb_policy: dynamodbPolicy
+    dynamodb_policy_attachment: dynamodb_policy_attachment
+
 

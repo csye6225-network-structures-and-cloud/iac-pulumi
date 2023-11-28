@@ -2,6 +2,8 @@ import pulumi
 from pulumi import Config
 import pulumi_aws as aws
 import base64
+import json
+
 
 
 # Taking reference from another stack
@@ -14,6 +16,8 @@ lb_security_group_id = stack_ref.get_output('lb_security_group_id')
 rds_instance = stack_ref.get_output('rds_instance_id')
 ec2_instance_profile=stack_ref.get_output('ec2_instance_profile')
 public_subnet_ids = stack_ref.get_output('public_subnet_ids')
+EC2_CloudWatchRole=stack_ref.get_output('EC2_CloudWatchRole')
+
 
 azs=stack_ref.get_output('azs')
 
@@ -48,11 +52,75 @@ logging_level=data.get("logging_level")
 publish_metrics=data.get("publish_metrics")
 metrics_server_hostname=data.get("metrics_server_hostname")
 metrics_server_port=data.get("metrics_server_port")
+demoaccount= data.get("demoaccount")
+aws_region=data.get("aws_region")
 
+gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
+gcp_bucket= gcp_stack_ref.get_output("gcp_bucket")
+mykey= gcp_stack_ref.get_output("mykey")
+
+
+
+
+#SNS -TOPIC CREATION 
+sns_topic = aws.sns.Topic(data.get("sns_topic"))
+
+sns_topic_policy = sns_topic.arn.apply(lambda arn: aws.iam.get_policy_document_output(policy_id="__default_policy_ID",
+    statements=[aws.iam.GetPolicyDocumentStatementArgs(
+        actions=[
+            "SNS:Subscribe",
+            "SNS:SetTopicAttributes",
+            "SNS:RemovePermission",
+            "SNS:Receive",
+            "SNS:Publish",
+            "SNS:ListSubscriptionsByTopic",
+            "SNS:GetTopicAttributes",
+            "SNS:DeleteTopic",
+            "SNS:AddPermission",
+        ],
+        conditions=[aws.iam.GetPolicyDocumentStatementConditionArgs(
+            test="StringEquals",
+            variable="AWS:SourceOwner",
+            values=[demoaccount],
+        )],
+        effect="Allow",
+        principals=[aws.iam.GetPolicyDocumentStatementPrincipalArgs(
+            type="AWS",
+            identifiers=["*"],
+        )],
+        resources=[arn],
+        sid="__default_statement_ID",
+    )]))
+
+
+TopicPolicy = aws.sns.TopicPolicy(data.get("TopicPolicy"),                              
+    arn=sns_topic.arn,
+    policy=sns_topic_policy.json)
+
+sns_publish_policy_document = aws.iam.get_policy_document_output(statements=[aws.iam.GetPolicyDocumentStatementArgs(
+    actions=["sns:Publish"],
+    resources=[sns_topic.arn],  # ARN of the SNS Topic
+    effect="Allow",
+)])
+
+# Create an IAM Policy with the above document
+sns_publish_policy = aws.iam.Policy("snsPublishPolicy",
+    policy=sns_publish_policy_document.json,
+)
+
+# Attach the Policy to the IAM Role
+sns_publish_policy_attachment = aws.iam.RolePolicyAttachment(data.get("snsPublishPolicyAttachment"),
+    role=EC2_CloudWatchRole, 
+    policy_arn=sns_publish_policy.arn,
+)
 
 #USER DATA
 db_host_output = rds_instance.apply(lambda instance: instance['address'])
-def format_user_data(db_host_value):
+resolved_sns_topic_arn = sns_topic.arn.apply(lambda arn: arn)
+
+
+def format_user_data(db_host_value,sns_topic_arn_value):
+
     user_data_decoded =  user_data_template.format(
         db_host=db_host_value,
         db_name=db_name,
@@ -70,12 +138,19 @@ def format_user_data(db_host_value):
         logging_level=logging_level,
         publish_metrics=publish_metrics,
         metrics_server_hostname=metrics_server_hostname,
-        metrics_server_port=metrics_server_port
+        metrics_server_port=metrics_server_port,
+        sns_topic_arn=sns_topic_arn_value,
+        aws_region=aws_region
+
     )
     user_data_encoded = base64.b64encode(user_data_decoded.encode('utf-8')).decode('utf-8')
     return user_data_encoded
 
-user_data = db_host_output.apply(format_user_data)
+# user_data = db_host_output.apply(format_user_data)
+user_data = pulumi.Output.all(db_host_output, resolved_sns_topic_arn).apply(
+    lambda args: format_user_data(*args)
+)
+
 
 user_data_template = """#!/bin/bash
 # Writing the application.properties file
@@ -98,6 +173,10 @@ logging.level.com.example.webapplication.*={logging_level}
 publish.metrics={publish_metrics}
 metrics.server.hostname={metrics_server_hostname}
 metrics.server.port={metrics_server_port} 
+
+sns.topicArn={sns_topic_arn}
+aws.region={aws_region}
+
 
 EOL
 
@@ -263,5 +342,121 @@ a_record = aws.route53.Record(f"{vpc_name}-a-record",
         )
     ],
 )
+
+
+
+ses_policy = aws.iam.Policy(data.get("sesSendEmailPolicy"),
+    description="Policy for Lambda function to send emails via SES",
+    policy=pulumi.Output.all().apply(lambda args: json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+            "Effect": "Allow",
+            "Resource": data.get("sespolicyresource")
+        }]
+    }))
+)
+
+# AWS Lambda Function
+lambda_role = aws.iam.Role(data.get("lambda_role"), assume_role_policy=json.dumps({
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Action": "sts:AssumeRole",
+        "Principal": {
+            "Service": "lambda.amazonaws.com"
+        },
+        "Effect": "Allow",
+        "Sid": ""
+    }]
+}))
+
+ses_policy_attachment = aws.iam.RolePolicyAttachment(data.get("ses_policy_attachment"),
+    role=lambda_role.name,
+    policy_arn=ses_policy.arn
+)
+
+
+# Attach policies to Lambda role
+aws.iam.RolePolicyAttachment(data.get("lambda-logs"), role=lambda_role.name,
+                             policy_arn=data.get("lambda_policy_arn"))
+
+dynamo_table = aws.dynamodb.Table("dynamo_table",
+    attributes=[
+        aws.dynamodb.TableAttributeArgs(
+            name=data.get("dynamo_table_name"),
+            type=data.get("dynamo_table_type"),
+        ),  
+         
+    ],
+    hash_key=data.get("dynamo_table_name"),
+    read_capacity=data.get("read_capacity"),
+    write_capacity=data.get("write_capacity"),
+    ttl=aws.dynamodb.TableTtlArgs(
+        attribute_name=data.get("timestamp"),
+        enabled=data.get("dynamodbenabled"),
+    ),
+)
+# AWS Lambda Function
+lambda_func = aws.lambda_.Function(data.get("lambda_func"),
+    role=lambda_role.arn,
+    runtime=data.get("runtime"), 
+    handler=data.get("handler"), 
+    code=pulumi.FileArchive(data.get("code")),
+    environment={
+        "variables": {
+            "GCP_BUCKET_NAME": gcp_bucket,
+            "GOOGLE_CREDENTIALS": mykey,
+            "DOMAIN":data.get("DOMAIN"),
+            "FROM_ADDRESS":data.get("FROM_ADDRESS"),
+            "DYNAMO_TABLE_NAME": dynamo_table.name
+            
+        }
+    }
+)
+
+lambdainvocation = aws.lambda_.Permission(data.get("lambdainvocation"),
+    action=data.get("action"),
+    function=lambda_func.name,
+    principal=data.get("principal"),
+    source_arn=sns_topic.arn)
+
+lambda_ = aws.sns.TopicSubscription(data.get("lambdaSubscription"),
+    topic=sns_topic.arn,
+    protocol=data.get("lambda_protocol"),
+    endpoint=lambda_func.arn)
+
+
+# DynamoDB IAM Policy
+dynamodb_policy_document = aws.iam.get_policy_document_output(statements=[aws.iam.GetPolicyDocumentStatementArgs(
+    actions=[
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan",
+        "dynamodb:Query"
+    ],
+
+    resources=["arn:aws:dynamodb:*:*:table/*"], 
+    effect="Allow",
+)])
+
+
+dynamodb_policy = aws.iam.Policy(data.get("dynamodbPolicy"),
+    policy=dynamodb_policy_document.json,
+)
+
+
+dynamodb_policy_attachment = aws.iam.RolePolicyAttachment(data.get("dynamodb_policy_attachment"),
+    role=lambda_role.name,  
+    policy_arn=dynamodb_policy.arn,
+)
+
+
+pulumi.export('topic_arn', resolved_sns_topic_arn)
+pulumi.export('lambdainvocation', lambdainvocation)
+pulumi.export('lambda_func', lambda_func)
+
+
 
 
