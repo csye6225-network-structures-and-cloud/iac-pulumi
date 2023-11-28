@@ -383,7 +383,7 @@ cloudwatch_policy = aws.iam.RolePolicy(data.get("Webapp-cloudwatch-policy"),
                 "ssm:PutParameter"
             ],
             "Resource": "arn:aws:ssm:*:*:parameter/AmazonCloudWatch-*"
-        }
+        },   
     ]
     })
 )
@@ -425,5 +425,6 @@ public_subnet_ids = [subnet.id for subnet in public_subnets]
 pulumi.export('public_subnet_ids', public_subnet_ids)
 pulumi.export('public_subnets', public_subnets)
 pulumi.export('azs',azs)
+pulumi.export('EC2_CloudWatchRole',EC2_CloudWatchRole.name)
 
 

@@ -1,0 +1,19 @@
+config:
+  gcp:project: csye6225-dev-405817
+  pulumi-gcp:data:
+    demoaccount: 494954498426
+    mykey: mykey
+    gcp_bucket: gcp_bucket
+    service_account: service_account
+    object_creator: object_creator
+    object_creator_role: "roles/storage.objectCreator"
+    bucket-object-viewer: bucket-object-viewer
+    object_viewer_role: "roles/storage.objectViewer"
+    object_viewer_user: "roles/storage.objectUser"
+    bucket-object_user: bucket-object_user
+    keytype: TYPE_X509_PEM_FILE
+    service-account-id: service-account-id
+    location: US
+    uniform_bucket_level_access: True
+    display_name: "GCP Service Account"
+    force_destroy: True
