@@ -3,7 +3,7 @@ from pulumi import Config
 import pulumi_aws as aws
 import base64
 import json
-
+import pulumi_gcp as gcp
 
 
 # Taking reference from another stack
@@ -17,7 +17,6 @@ rds_instance = stack_ref.get_output('rds_instance_id')
 ec2_instance_profile=stack_ref.get_output('ec2_instance_profile')
 public_subnet_ids = stack_ref.get_output('public_subnet_ids')
 EC2_CloudWatchRole=stack_ref.get_output('EC2_CloudWatchRole')
-
 
 azs=stack_ref.get_output('azs')
 
@@ -55,11 +54,45 @@ metrics_server_port=data.get("metrics_server_port")
 demoaccount= data.get("demoaccount")
 aws_region=data.get("aws_region")
 
-gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
-gcp_bucket= gcp_stack_ref.get_output("gcp_bucket")
-mykey= gcp_stack_ref.get_output("mykey")
+# gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
 
 
+
+gcp_bucket = gcp.storage.Bucket(data.get("gcp_bucket"),
+    location=data.get("location"),
+    uniform_bucket_level_access=data.get("uniform_bucket_level_access"),
+    force_destroy=data.get("force_destroy"))
+
+
+service_account = gcp.serviceaccount.Account(data.get("service_account"),
+    account_id=data.get("service-account-id"),
+    display_name=data.get("display_name"))
+
+
+mykey = gcp.serviceaccount.Key(data.get("mykey"),
+    service_account_id=service_account.name,
+    public_key_type=data.get("keytype"))
+
+# object_creator = gcp.storage.BucketIAMMember(data.get("object_creator"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_creator_role"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+# object_viewer = gcp.storage.BucketIAMMember(data.get("bucket-object-viewer"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_viewer_role"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+
+# object_user = gcp.storage.BucketIAMMember(data.get("bucket-object_user"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_viewer_user"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+object_admin = gcp.storage.BucketIAMMember(data.get("bucket-object_admin"),
+    bucket=gcp_bucket,
+    role=data.get("object_viewer_admin"),
+    member=pulumi.Output.concat("serviceAccount:", service_account.email))
 
 
 #SNS -TOPIC CREATION 
@@ -120,7 +153,6 @@ resolved_sns_topic_arn = sns_topic.arn.apply(lambda arn: arn)
 
 
 def format_user_data(db_host_value,sns_topic_arn_value):
-
     user_data_decoded =  user_data_template.format(
         db_host=db_host_value,
         db_name=db_name,
@@ -141,7 +173,6 @@ def format_user_data(db_host_value,sns_topic_arn_value):
         metrics_server_port=metrics_server_port,
         sns_topic_arn=sns_topic_arn_value,
         aws_region=aws_region
-
     )
     user_data_encoded = base64.b64encode(user_data_decoded.encode('utf-8')).decode('utf-8')
     return user_data_encoded
@@ -150,7 +181,6 @@ def format_user_data(db_host_value,sns_topic_arn_value):
 user_data = pulumi.Output.all(db_host_output, resolved_sns_topic_arn).apply(
     lambda args: format_user_data(*args)
 )
-
 
 user_data_template = """#!/bin/bash
 # Writing the application.properties file
@@ -173,10 +203,8 @@ logging.level.com.example.webapplication.*={logging_level}
 publish.metrics={publish_metrics}
 metrics.server.hostname={metrics_server_hostname}
 metrics.server.port={metrics_server_port} 
-
 sns.topicArn={sns_topic_arn}
 aws.region={aws_region}
-
 
 EOL
 
@@ -402,10 +430,11 @@ lambda_func = aws.lambda_.Function(data.get("lambda_func"),
     runtime=data.get("runtime"), 
     handler=data.get("handler"), 
     code=pulumi.FileArchive(data.get("code")),
+    timeout = data.get("timeout"),
     environment={
         "variables": {
-            "GCP_BUCKET_NAME": gcp_bucket,
-            "GOOGLE_CREDENTIALS": mykey,
+            "GCP_BUCKET_NAME": gcp_bucket.name,
+            "GOOGLE_CREDENTIALS": mykey.private_key,
             "DOMAIN":data.get("DOMAIN"),
             "FROM_ADDRESS":data.get("FROM_ADDRESS"),
             "DYNAMO_TABLE_NAME": dynamo_table.name
@@ -456,7 +485,6 @@ dynamodb_policy_attachment = aws.iam.RolePolicyAttachment(data.get("dynamodb_pol
 pulumi.export('topic_arn', resolved_sns_topic_arn)
 pulumi.export('lambdainvocation', lambdainvocation)
 pulumi.export('lambda_func', lambda_func)
-
 
 
 
