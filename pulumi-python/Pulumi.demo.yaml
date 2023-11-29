@@ -5,6 +5,7 @@ config:
     active: true
     no_of_subnets: 6 # desired level
     azs_value: 3
+    azs_value: 3
     vpcCidr: 10.0.0.0/16
     vpcName: demoenv
     destination_cidr_block: 0.0.0.0/0
@@ -13,6 +14,7 @@ config:
     volume_size: 25
     volume_type: gp2
     keyname: demo
+    ami_id: ami-02d641bf3d40f7cd0
     ami_id: ami-02d641bf3d40f7cd0
     disable_api_termination: false
     delete_on_termination: True
