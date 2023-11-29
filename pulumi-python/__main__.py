@@ -182,38 +182,6 @@ lb_security_group = aws.ec2.SecurityGroup("loadBalancerSecurityGroup",
 
 
 
-# Load Balancer Security Group
-lb_security_group = aws.ec2.SecurityGroup("loadBalancerSecurityGroup",
-    vpc_id=Virtual_private_cloud.id,
-    description="Security group for Load Balancer",
-    ingress=[
-        aws.ec2.SecurityGroupIngressArgs(
-            description="HTTP",
-            from_port=http_port,  # 80
-            to_port=http_port,
-            protocol=protocol,
-            cidr_blocks=[data.get("cidr_blocks")]
-        ),
-        aws.ec2.SecurityGroupIngressArgs(
-            description="HTTPS",
-            from_port=https_port, # 443
-            to_port=https_port,
-            protocol=protocol,
-            cidr_blocks=[data.get("cidr_blocks")]
-        ),
-    ],
-
-    egress=[
-        aws.ec2.SecurityGroupEgressArgs(
-            from_port=data.get("egressport"),
-            to_port=data.get("egressport"),
-            protocol=data.get("egress_protocol"),
-            cidr_blocks=[data.get("cidr_blocks")]
-        )
-    ],
-    tags={"Name": "loadBalancerSecurityGroup"}
-)
-
 
 # Application Security Group
 app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
@@ -227,20 +195,7 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
             protocol=protocol,
             security_groups=[lb_security_group.id]
         ),
-        # aws.ec2.SecurityGroupIngressArgs(
-        #     description="HTTP",
-        #     from_port=http_port,
-        #     to_port=http_port,
-        #     protocol=protocol,
-        #     cidr_blocks=["0.0.0.0/0"]
-        # ),
-        # aws.ec2.SecurityGroupIngressArgs(
-        #     description="HTTP",
-        #     from_port=http_port,
-        #     to_port=http_port,
-        #     protocol=protocol,
-        #     cidr_blocks=["0.0.0.0/0"]
-        # ),
+        
         aws.ec2.SecurityGroupIngressArgs(
             description="App Port 8080",
             from_port=app_port,
