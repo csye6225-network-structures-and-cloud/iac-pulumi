@@ -223,10 +223,8 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
         aws.ec2.SecurityGroupIngressArgs(
             description="SSH",
             from_port=ssh_port, #22
-            from_port=ssh_port, #22
             to_port=ssh_port,
             protocol=protocol,
-            security_groups=[lb_security_group.id]
             security_groups=[lb_security_group.id]
         ),
         # aws.ec2.SecurityGroupIngressArgs(
@@ -248,7 +246,6 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
             from_port=app_port,
             to_port=app_port,
             protocol=protocol,
-            security_groups=[lb_security_group.id]
             security_groups=[lb_security_group.id]
             ),
         # aws.ec2.SecurityGroupIngressArgs(
@@ -272,10 +269,7 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
             to_port=data.get("egressport"),
             protocol=data.get("egress_protocol"),
             cidr_blocks=[data.get("cidr_blocks")]
-            from_port=data.get("egressport"),
-            to_port=data.get("egressport"),
-            protocol=data.get("egress_protocol"),
-            cidr_blocks=[data.get("cidr_blocks")]
+           
         )
     ],
     tags={"Name": f"{applicationsecuritygroup}"}
@@ -284,7 +278,6 @@ app_security_group = aws.ec2.SecurityGroup(f"{applicationsecuritygroup}",
 
 # Database Security Group
 db_security_group = aws.ec2.SecurityGroup(databasesecuritygroup,
-db_security_group = aws.ec2.SecurityGroup(databasesecuritygroup,
     description="Allow inbound traffic for RDS PostgreSQL",
     vpc_id=Virtual_private_cloud.id,
     ingress=[
@@ -292,7 +285,6 @@ db_security_group = aws.ec2.SecurityGroup(databasesecuritygroup,
             description="PostgreSQL",
             from_port=data.get("postgresport"),
             to_port=data.get("postgresport"),
-            protocol=protocol,
             protocol=protocol,
             security_groups=[app_security_group.id]
         )
@@ -303,13 +295,9 @@ db_security_group = aws.ec2.SecurityGroup(databasesecuritygroup,
             to_port=data.get("egressport"),
             protocol=data.get("egress_protocol"),
             cidr_blocks=[data.get("cidr_blocks")]
-            from_port=data.get("egressport"),
-            to_port=data.get("egressport"),
-            protocol=data.get("egress_protocol"),
-            cidr_blocks=[data.get("cidr_blocks")]
+            
         )
     ],
-    tags={"Name": databasesecuritygroup}
     tags={"Name": databasesecuritygroup}
 )
 
@@ -482,7 +470,7 @@ rds_instance = aws.rds.Instance(data.get("rdsinstancename"),
 # """
 # """
 
-EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
+
 EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     assume_role_policy=json.dumps({
         "Version": "2012-10-17",
@@ -501,7 +489,6 @@ EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     })
 
 
-cloudwatch_policy = aws.iam.RolePolicy(data.get("Webapp-cloudwatch-policy"),
 cloudwatch_policy = aws.iam.RolePolicy(data.get("Webapp-cloudwatch-policy"),
     role=EC2_CloudWatchRole.name,
     policy=json.dumps({
@@ -528,14 +515,11 @@ cloudwatch_policy = aws.iam.RolePolicy(data.get("Webapp-cloudwatch-policy"),
                 "ssm:PutParameter"
             ],
             "Resource": "arn:aws:ssm:*:*:parameter/AmazonCloudWatch-*"
+        }, ]  
         },   
-        },   
-    ]
-    })
-)
+))
 
 
-ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-profile"),
 ec2_instance_profile = aws.iam.InstanceProfile(data.get("webapp-ec2-instance-profile"),
     role=EC2_CloudWatchRole.name
 )
