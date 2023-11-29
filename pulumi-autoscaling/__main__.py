@@ -430,7 +430,7 @@ lambda_func = aws.lambda_.Function(data.get("lambda_func"),
     runtime=data.get("runtime"), 
     handler=data.get("handler"), 
     code=pulumi.FileArchive(data.get("code")),
-    timeout = 60,
+    timeout = data.get("timeout"),
     environment={
         "variables": {
             "GCP_BUCKET_NAME": gcp_bucket.name,

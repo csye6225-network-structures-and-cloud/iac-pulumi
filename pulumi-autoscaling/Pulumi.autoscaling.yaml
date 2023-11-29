@@ -118,6 +118,7 @@ config:
     dynamo_table_type: S
     read_capacity: 1
     write_capacity: 1
+    timeout: 60
     timestamp: timestamp
     dynamodbenabled: True
     lambda_func: lambda
