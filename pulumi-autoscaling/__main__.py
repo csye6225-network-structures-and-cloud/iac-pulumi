@@ -3,6 +3,7 @@ from pulumi import Config
 import pulumi_aws as aws
 import base64
 import json
+import pulumi_gcp as gcp
 
 
 # Taking reference from another stack
@@ -53,11 +54,45 @@ metrics_server_port=data.get("metrics_server_port")
 demoaccount= data.get("demoaccount")
 aws_region=data.get("aws_region")
 
-gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
-gcp_bucket= gcp_stack_ref.get_output("gcp_bucket")
-mykey= gcp_stack_ref.get_output("mykey")
+# gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
 
 
+
+gcp_bucket = gcp.storage.Bucket(data.get("gcp_bucket"),
+    location=data.get("location"),
+    uniform_bucket_level_access=data.get("uniform_bucket_level_access"),
+    force_destroy=data.get("force_destroy"))
+
+
+service_account = gcp.serviceaccount.Account(data.get("service_account"),
+    account_id=data.get("service-account-id"),
+    display_name=data.get("display_name"))
+
+
+mykey = gcp.serviceaccount.Key(data.get("mykey"),
+    service_account_id=service_account.name,
+    public_key_type=data.get("keytype"))
+
+# object_creator = gcp.storage.BucketIAMMember(data.get("object_creator"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_creator_role"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+# object_viewer = gcp.storage.BucketIAMMember(data.get("bucket-object-viewer"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_viewer_role"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+
+# object_user = gcp.storage.BucketIAMMember(data.get("bucket-object_user"),
+#     bucket=gcp_bucket,
+#     role=data.get("object_viewer_user"),
+#     member=pulumi.Output.concat("serviceAccount:", service_account.email))
+
+object_admin = gcp.storage.BucketIAMMember(data.get("bucket-object_admin"),
+    bucket=gcp_bucket,
+    role=data.get("object_viewer_admin"),
+    member=pulumi.Output.concat("serviceAccount:", service_account.email))
 
 
 #SNS -TOPIC CREATION 
@@ -395,10 +430,11 @@ lambda_func = aws.lambda_.Function(data.get("lambda_func"),
     runtime=data.get("runtime"), 
     handler=data.get("handler"), 
     code=pulumi.FileArchive(data.get("code")),
+    timeout = 60,
     environment={
         "variables": {
-            "GCP_BUCKET_NAME": gcp_bucket,
-            "GOOGLE_CREDENTIALS": mykey,
+            "GCP_BUCKET_NAME": gcp_bucket.name,
+            "GOOGLE_CREDENTIALS": mykey.private_key,
             "DOMAIN":data.get("DOMAIN"),
             "FROM_ADDRESS":data.get("FROM_ADDRESS"),
             "DYNAMO_TABLE_NAME": dynamo_table.name

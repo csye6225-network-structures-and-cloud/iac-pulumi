@@ -1,7 +1,7 @@
 config:
   aws:profile: demo
   aws:region: us-east-1
-  gcp:project: csye6225-dev-405817
+  gcp:project: csye6225-demo-405817
   pulumi-autoscaling:data:
     EC2_CloudWatchRole: Webapp-CloudWatchRole
     Listener_type: forward
@@ -9,7 +9,7 @@ config:
     active: true
     adjustment_type: ChangeInCapacity
     allocated_storage: 25
-    ami_id: ami-067a66f221cd9e043
+    ami_id: ami-01ffad4c2ce0eae86
     app_environment: production
     app_port: 8080
     applicationsecuritygroup: application security group
@@ -134,4 +134,20 @@ config:
     lambdaSubscription: lambdaSubscription
     dynamodb_policy: dynamodbPolicy
     dynamodb_policy_attachment: dynamodb_policy_attachment
+    mykey: mykey
+    gcp_bucket: gcp_bucket
+    service_account: service_account
+    object_creator: object_creator
+    object_creator_role: "roles/storage.objectCreator"
+    bucket-object-viewer: bucket-object-viewer
+    object_viewer_role: "roles/storage.objectViewer"
+    object_viewer_admin: "roles/storage.objectAdmin"
+    bucket-object_admin: bucket-object_admin
+    keytype: TYPE_X509_PEM_FILE
+    service-account-id: service-account-id
+    location: US
+    uniform_bucket_level_access: True
+    display_name: "GCP Service Account"
+    force_destroy: True
+
 
