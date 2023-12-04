@@ -19,6 +19,24 @@ For this objective, you must complete the following tasks:
 - Write Pulumi code in a high level language (you cannot use YAML) all the networking resources.
 - Values should not be hard coded in your code.
 
+## Auto Scaling stack Setup:
+- Web Application Access: Restricted direct access via EC2 IP; accessible only through load balancer.
+- Launch Template: Custom AMI, t2.micro instances, specific key and security settings.
+- Auto Scaling Group: Min 1, Max 3 instances, cooldown period 60 seconds.
+- Scaling Policies: Scale up on >5% CPU usage, scale down on <3% CPU usage.
+  
+# Application Load Balancer:
+- Integrated with EC2 instances in the auto-scaling group.
+- Configuration for HTTP traffic on port 80.
+- Attached specific security group to the load balancer.
+
+# Amazon SNS Configuration: 
+- Implemented using Pulumi for topic creation, facilitating notifications related to web application updates.
+- Google Cloud Setup: Involves creating projects and enabling services, alongside local gcloud CLI setup.
+- Infrastructure as Code with Pulumi: Establishes Google Cloud Storage, Service Accounts, Lambda Functions, and DynamoDB instances, including IAM roles and policies.
+
+# SSL Certificate Acquisition: 
+- Configured load balancer to utilize the imported SSL certificate for secure connections and allowed port 443 for HTTPS.
 
 ## Useful commands 
 
