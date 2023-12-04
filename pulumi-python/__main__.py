@@ -440,7 +440,7 @@ EC2_CloudWatchRole = aws.iam.Role(data.get("EC2_CloudWatchRole"),
     }),
     tags={
         "Name": data.get("EC2_CloudWatchRole"),
-        "Name": data.get("EC2_CloudWatchRole"),
+        # "Name": data.get("EC2_CloudWatchRole"),
     })
 
 

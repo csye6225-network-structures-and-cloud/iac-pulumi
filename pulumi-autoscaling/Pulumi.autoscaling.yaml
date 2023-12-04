@@ -5,11 +5,12 @@ config:
   pulumi-autoscaling:data:
     EC2_CloudWatchRole: Webapp-CloudWatchRole
     Listener_type: forward
+    asg: asg
     Webapp-cloudwatch-policy: Webapp-cloudwatch-policy
     active: true
     adjustment_type: ChangeInCapacity
     allocated_storage: 25
-    ami_id: ami-01ffad4c2ce0eae86
+    ami_id: ami-0c6feefb89de6e3d4
     app_environment: production
     app_port: 8080
     applicationsecuritygroup: application security group
@@ -150,5 +151,8 @@ config:
     uniform_bucket_level_access: True
     display_name: "GCP Service Account"
     force_destroy: True
+    asg-group: asg-group
+    asg-launch-template: asg-launch-template
+    certificate_arn: "arn:aws:acm:us-east-1:494954498426:certificate/b13cfa7b-bb97-417c-b99a-6a951808a9e5"
 
 
