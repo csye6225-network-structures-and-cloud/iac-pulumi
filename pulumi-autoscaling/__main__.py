@@ -53,6 +53,7 @@ metrics_server_hostname=data.get("metrics_server_hostname")
 metrics_server_port=data.get("metrics_server_port")
 demoaccount= data.get("demoaccount")
 aws_region=data.get("aws_region")
+asg=data.get("asg")
 
 # gcp_stack_ref = pulumi.StackReference("vallaras23/pulumi-gcp/dev")
 
@@ -223,8 +224,8 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -s
 """
 
-LaunchTemplate = aws.ec2.LaunchTemplate(data.get("launchtemplatename"),
-    
+LaunchTemplate = aws.ec2.LaunchTemplate(f"{asg}-launch-template",
+    name=data.get("asg-launch-template"),
     image_id=data.get("ami_id"),
     instance_type=data.get("instance_type"),
     key_name=data.get("keyname"),
@@ -239,7 +240,7 @@ LaunchTemplate = aws.ec2.LaunchTemplate(data.get("launchtemplatename"),
     tag_specifications=[aws.ec2.LaunchTemplateTagSpecificationArgs(
         resource_type=data.get("resource_type"),
         tags={
-            "Name": data.get("launchtemplatename")
+            "Name": f"{asg}-launch-template"
         }
     )],
     block_device_mappings=[aws.ec2.LaunchTemplateBlockDeviceMappingArgs(
@@ -269,7 +270,8 @@ target_group = aws.lb.TargetGroup(data.get("targetgroupname"),
     target_type=data.get("target_type"))
 
 
-autoscaling_group = aws.autoscaling.Group(data.get("asg_name"),                      
+autoscaling_group = aws.autoscaling.Group(f"{asg}-group",
+    name=data.get("asg-group"),                  
     desired_capacity=data.get("asg_desired_capacity"),
     max_size=data.get("asg_max_size"),
     min_size=data.get("asg_min_size"),
@@ -347,7 +349,9 @@ alb = aws.lb.LoadBalancer(data.get("webappAppLoadBalancer"),
 # Listener for ALB
 listener = aws.lb.Listener(data.get("listener"),
     load_balancer_arn=alb.arn,
-    port=http_port, #listener port 80
+    port=https_port, #listener port 80
+    protocol="HTTPS",
+    certificate_arn=data.get("certificate_arn"),
     default_actions=[
         aws.lb.ListenerDefaultActionArgs(
             type=data.get("Listener_type"),
